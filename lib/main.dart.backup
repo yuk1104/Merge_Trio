@@ -1,0 +1,873 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_animate/flutter_animate.dart';
+import 'dart:math';
+import 'dart:async';
+
+void main() {
+  runApp(const MergeTrioApp());
+}
+
+// サウンドマネージャー（Web用にシンプルな実装）
+class SoundManager {
+  static final SoundManager _instance = SoundManager._internal();
+  factory SoundManager() => _instance;
+  SoundManager._internal();
+
+  bool _soundEnabled = true;
+
+  void playTap() {
+    if (!_soundEnabled) return;
+    // Web用の簡易サウンド実装
+    // 実際の音声ファイルを使う場合はaudioplayersパッケージを使用
+  }
+
+  void playMerge(int level) {
+    if (!_soundEnabled) return;
+    // レベルに応じた音を再生
+  }
+
+  void playCombo(int combo) {
+    if (!_soundEnabled) return;
+    // コンボ数に応じた音を再生
+  }
+
+  void playGameOver() {
+    if (!_soundEnabled) return;
+    // ゲームオーバー音を再生
+  }
+
+  void toggleSound() {
+    _soundEnabled = !_soundEnabled;
+  }
+
+  bool get isSoundEnabled => _soundEnabled;
+}
+
+// パーティクルエフェクト用のウィジェット
+class Particle {
+  double x;
+  double y;
+  double vx;
+  double vy;
+  double size;
+  Color color;
+  double life;
+
+  Particle({
+    required this.x,
+    required this.y,
+    required this.vx,
+    required this.vy,
+    required this.size,
+    required this.color,
+    this.life = 1.0,
+  });
+}
+
+class MergeTrioApp extends StatelessWidget {
+  const MergeTrioApp({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return MaterialApp(
+      title: 'Merge Trio',
+      debugShowCheckedModeBanner: false,
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
+        useMaterial3: true,
+        fontFamily: 'Roboto',
+      ),
+      home: const GameScreen(),
+    );
+  }
+}
+
+// ゲームモデル
+class GameModel {
+  final int boardSize;
+  late List<List<int>> board;
+  int score = 0;
+  int currentNumber = 0;
+  int nextNumber = 0;
+  bool isGameOver = false;
+  int comboCount = 0;
+  int? lastPlacedRow;
+  int? lastPlacedCol;
+  final Random _random = Random();
+
+  GameModel({this.boardSize = 4}) {
+    reset();
+  }
+
+  void reset() {
+    board = List.generate(boardSize, (_) => List.filled(boardSize, 0));
+    score = 0;
+    isGameOver = false;
+    comboCount = 0;
+    generateNextNumber();
+    shiftNextNumber();
+  }
+
+  int _generateRandomNumber() {
+    final rand = _random.nextDouble();
+    if (rand < 0.70) {
+      return _random.nextInt(3) + 1;
+    } else if (rand < 0.95) {
+      return _random.nextInt(2) + 4;
+    } else {
+      return _random.nextInt(2) + 6;
+    }
+  }
+
+  void generateNextNumber() {
+    nextNumber = _generateRandomNumber();
+  }
+
+  void shiftNextNumber() {
+    currentNumber = nextNumber;
+    generateNextNumber();
+  }
+
+  bool placeTile(int row, int col) {
+    if (isGameOver) return false;
+    if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) return false;
+    if (board[row][col] != 0) return false;
+
+    board[row][col] = currentNumber;
+    lastPlacedRow = row;
+    lastPlacedCol = col;
+    comboCount = 0;
+
+    bool merged = true;
+    while (merged) {
+      merged = processMerge();
+      if (merged) comboCount++;
+    }
+
+    shiftNextNumber();
+    checkGameOver();
+
+    return true;
+  }
+
+  bool processMerge() {
+    // まず、最後に置いた位置から確認
+    if (lastPlacedRow != null && lastPlacedCol != null) {
+      final row = lastPlacedRow!;
+      final col = lastPlacedCol!;
+      if (board[row][col] != 0) {
+        final number = board[row][col];
+        final group = findConnectedGroup(row, col, number);
+
+        if (group.length >= 3) {
+          mergeGroup(group, row, col, number);
+          return true;
+        }
+      }
+    }
+
+    // その他の位置を確認
+    for (int row = 0; row < boardSize; row++) {
+      for (int col = 0; col < boardSize; col++) {
+        if (board[row][col] == 0) continue;
+        if (row == lastPlacedRow && col == lastPlacedCol) continue; // 既にチェック済み
+
+        final number = board[row][col];
+        final group = findConnectedGroup(row, col, number);
+
+        if (group.length >= 3) {
+          mergeGroup(group, row, col, number);
+          // 連鎖の場合は、この位置を新しいlastPlacedとして設定
+          lastPlacedRow = row;
+          lastPlacedCol = col;
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  List<Position> findConnectedGroup(int startRow, int startCol, int number) {
+    final visited = List.generate(boardSize, (_) => List.filled(boardSize, false));
+    final group = <Position>[];
+
+    void dfs(int row, int col) {
+      if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) return;
+      if (visited[row][col]) return;
+      if (board[row][col] != number) return;
+
+      visited[row][col] = true;
+      group.add(Position(row, col));
+
+      dfs(row - 1, col);
+      dfs(row + 1, col);
+      dfs(row, col - 1);
+      dfs(row, col + 1);
+    }
+
+    dfs(startRow, startCol);
+    return group;
+  }
+
+  void mergeGroup(List<Position> group, int tapRow, int tapCol, int number) {
+    for (final pos in group) {
+      if (pos.row == tapRow && pos.col == tapCol) {
+        board[pos.row][pos.col] = number + 1;
+        score += number + 1;
+      } else {
+        board[pos.row][pos.col] = 0;
+      }
+    }
+  }
+
+  void checkGameOver() {
+    for (int row = 0; row < boardSize; row++) {
+      for (int col = 0; col < boardSize; col++) {
+        if (board[row][col] == 0) {
+          isGameOver = false;
+          return;
+        }
+      }
+    }
+    isGameOver = true;
+  }
+}
+
+class Position {
+  final int row;
+  final int col;
+
+  Position(this.row, this.col);
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is Position && runtimeType == other.runtimeType && row == other.row && col == other.col;
+
+  @override
+  int get hashCode => row.hashCode ^ col.hashCode;
+}
+
+// ゲーム画面
+class GameScreen extends StatefulWidget {
+  const GameScreen({super.key});
+
+  @override
+  State<GameScreen> createState() => _GameScreenState();
+}
+
+class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
+  late GameModel game;
+  int? lastMergedRow;
+  int? lastMergedCol;
+  int lastAddedScore = 0;
+  bool showScorePopup = false;
+  bool showCombo = false;
+  late AnimationController _tileAnimationController;
+  late AnimationController _scorePopupController;
+  late AnimationController _comboController;
+  late AnimationController _particleController;
+  final SoundManager _soundManager = SoundManager();
+  List<Particle> particles = [];
+  Timer? _particleTimer;
+
+  @override
+  void initState() {
+    super.initState();
+    game = GameModel();
+    _tileAnimationController = AnimationController(
+      duration: const Duration(milliseconds: 300),
+      vsync: this,
+    );
+    _scorePopupController = AnimationController(
+      duration: const Duration(milliseconds: 800),
+      vsync: this,
+    );
+    _comboController = AnimationController(
+      duration: const Duration(milliseconds: 600),
+      vsync: this,
+    );
+    _particleController = AnimationController(
+      duration: const Duration(milliseconds: 16),
+      vsync: this,
+    )..addListener(_updateParticles);
+
+    _particleTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
+      if (mounted) {
+        _particleController.forward(from: 0);
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _tileAnimationController.dispose();
+    _scorePopupController.dispose();
+    _comboController.dispose();
+    _particleController.dispose();
+    _particleTimer?.cancel();
+    super.dispose();
+  }
+
+  void _updateParticles() {
+    if (!mounted) return;
+    setState(() {
+      for (var particle in particles) {
+        particle.x += particle.vx;
+        particle.y += particle.vy;
+        particle.vy += 0.2; // 重力
+        particle.life -= 0.02;
+      }
+      particles.removeWhere((p) => p.life <= 0);
+    });
+  }
+
+  void _createParticles(double x, double y, Color color) {
+    final random = Random();
+    for (int i = 0; i < 20; i++) {
+      particles.add(Particle(
+        x: x,
+        y: y,
+        vx: (random.nextDouble() - 0.5) * 8,
+        vy: (random.nextDouble() - 0.5) * 8 - 4,
+        size: random.nextDouble() * 6 + 2,
+        color: color,
+      ));
+    }
+  }
+
+  void _placeTile(int row, int col) async {
+    if (game.board[row][col] != 0) return;
+
+    _soundManager.playTap();
+
+    final scoreBefore = game.score;
+
+    setState(() {
+      game.placeTile(row, col);
+    });
+
+    lastMergedRow = row;
+    lastMergedCol = col;
+    lastAddedScore = game.score - scoreBefore;
+
+    // パーティクルエフェクトを発生
+    if (lastAddedScore > 0) {
+      final gradient = _getTileGradient(game.board[row][col]);
+      _createParticles(
+        (col + 0.5) * 80.0,
+        (row + 0.5) * 80.0,
+        gradient.first,
+      );
+      _soundManager.playMerge(game.board[row][col]);
+    }
+
+    if (lastAddedScore > 0) {
+      setState(() {
+        showScorePopup = true;
+      });
+      _scorePopupController.forward(from: 0);
+      await Future.delayed(const Duration(milliseconds: 800));
+      setState(() {
+        showScorePopup = false;
+      });
+    }
+
+    if (game.comboCount > 1) {
+      _soundManager.playCombo(game.comboCount);
+      setState(() {
+        showCombo = true;
+      });
+      _comboController.forward(from: 0);
+      await Future.delayed(const Duration(milliseconds: 600));
+      setState(() {
+        showCombo = false;
+      });
+    }
+
+    _tileAnimationController.forward(from: 0);
+
+    if (game.isGameOver) {
+      _soundManager.playGameOver();
+      await Future.delayed(const Duration(milliseconds: 500));
+      _showGameOverDialog();
+    }
+  }
+
+  void _restartGame() {
+    setState(() {
+      game.reset();
+      showScorePopup = false;
+      showCombo = false;
+    });
+  }
+
+  void _showGameOverDialog() {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      barrierColor: Colors.black.withValues(alpha: 0.7),
+      builder: (context) => AlertDialog(
+        backgroundColor: Colors.white,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
+        title: const Column(
+          children: [
+            Icon(
+              Icons.emoji_events,
+              color: Color(0xFF5E35B1),
+              size: 60,
+            ),
+            SizedBox(height: 12),
+            Text(
+              'ゲームオーバー',
+              style: TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text(
+              'スコア',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey,
+              ),
+            ),
+            const SizedBox(height: 8),
+            Text(
+              '${game.score}',
+              style: const TextStyle(
+                fontSize: 48,
+                fontWeight: FontWeight.bold,
+                color: Color(0xFF5E35B1),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(context).pop();
+                _restartGame();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFF5E35B1),
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(vertical: 16),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                'もう一度プレイ',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  List<Color> _getTileGradient(int number) {
+    switch (number) {
+      case 1:
+        return [const Color(0xFFFFF9C4), const Color(0xFFFFF59D)];
+      case 2:
+        return [const Color(0xFFFFCC80), const Color(0xFFFFB74D)];
+      case 3:
+        return [const Color(0xFFFF9800), const Color(0xFFFB8C00)];
+      case 4:
+        return [const Color(0xFFEF5350), const Color(0xFFE53935)];
+      case 5:
+        return [const Color(0xFFAB47BC), const Color(0xFF8E24AA)];
+      case 6:
+        return [const Color(0xFF42A5F5), const Color(0xFF1E88E5)];
+      case 7:
+        return [const Color(0xFF66BB6A), const Color(0xFF43A047)];
+      default:
+        return [const Color(0xFFEEEEEE), const Color(0xFFE0E0E0)];
+    }
+  }
+
+  Color _getTileTextColor(int number) {
+    return number == 1 ? Colors.orange[800]! : Colors.white;
+  }
+
+  Widget _buildTile(int number, {double size = 60}) {
+    final gradient = _getTileGradient(number);
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: gradient,
+        ),
+        borderRadius: BorderRadius.circular(8),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.15),
+            blurRadius: 6,
+            offset: const Offset(0, 3),
+          ),
+        ],
+      ),
+      child: Center(
+        child: Text(
+          '$number',
+          style: TextStyle(
+            fontSize: size * 0.4,
+            fontWeight: FontWeight.bold,
+            color: _getTileTextColor(number),
+          ),
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [
+              Color(0xFF1A1A2E),
+              Color(0xFF16213E),
+              Color(0xFF0F3460),
+            ],
+          ),
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildAppBar(),
+              Expanded(child: _buildGameArea()),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildAppBar() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // タイトル
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFFE94560), Color(0xFFFF6B9D)],
+                  ),
+                  borderRadius: BorderRadius.circular(12),
+                  boxShadow: [
+                    BoxShadow(
+                      color: const Color(0xFFE94560).withValues(alpha: 0.5),
+                      blurRadius: 12,
+                      spreadRadius: 2,
+                    ),
+                  ],
+                ),
+                child: const Icon(Icons.auto_awesome, color: Colors.white, size: 24),
+              ),
+              const SizedBox(width: 12),
+              const Text(
+                'MERGE TRIO',
+                style: TextStyle(
+                  fontSize: 24,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 2,
+                  shadows: [
+                    Shadow(
+                      color: Color(0xFFE94560),
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // リスタートボタン
+          GestureDetector(
+            onTap: _restartGame,
+            child: Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.white.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.2),
+                  width: 1.5,
+                ),
+              ),
+              child: const Icon(Icons.refresh, color: Colors.white, size: 24),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildGameArea() {
+    return
+      body: SafeArea(
+        child: Stack(
+          children: [
+            Column(
+              children: [
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 30),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Column(
+                        children: [
+                          Text(
+                            'スコア',
+                            style: TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                              color: Colors.grey[600],
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            '${game.score}',
+                            style: const TextStyle(
+                              fontSize: 36,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF5E35B1),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 24),
+                Expanded(
+                  child: Center(
+                    child: AspectRatio(
+                      aspectRatio: 1,
+                      child: Container(
+                        margin: const EdgeInsets.symmetric(horizontal: 16),
+                        padding: const EdgeInsets.all(10),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFBDBDBD),
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                        child: GridView.builder(
+                          physics: const NeverScrollableScrollPhysics(),
+                          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                            crossAxisCount: game.boardSize,
+                            crossAxisSpacing: 10,
+                            mainAxisSpacing: 10,
+                          ),
+                          itemCount: game.boardSize * game.boardSize,
+                          itemBuilder: (context, index) {
+                            final row = index ~/ game.boardSize;
+                            final col = index % game.boardSize;
+                            final number = game.board[row][col];
+
+                            return GestureDetector(
+                              onTap: () => _placeTile(row, col),
+                              child: AnimatedBuilder(
+                                animation: _tileAnimationController,
+                                builder: (context, child) {
+                                  final scale = (row == lastMergedRow && col == lastMergedCol)
+                                      ? 1.0 + (_tileAnimationController.value * 0.1 * (1 - _tileAnimationController.value) * 4)
+                                      : 1.0;
+
+                                  return Transform.scale(
+                                    scale: scale,
+                                    child: Container(
+                                      decoration: BoxDecoration(
+                                        gradient: number == 0
+                                            ? null
+                                            : LinearGradient(
+                                                begin: Alignment.topLeft,
+                                                end: Alignment.bottomRight,
+                                                colors: _getTileGradient(number),
+                                              ),
+                                        color: number == 0 ? const Color(0xFFE0E0E0) : null,
+                                        borderRadius: BorderRadius.circular(10),
+                                        boxShadow: number != 0
+                                            ? [
+                                                BoxShadow(
+                                                  color: Colors.black.withValues(alpha: 0.2),
+                                                  blurRadius: 6,
+                                                  offset: const Offset(0, 3),
+                                                ),
+                                              ]
+                                            : null,
+                                      ),
+                                      child: Center(
+                                        child: number != 0
+                                            ? Text(
+                                                '$number',
+                                                style: TextStyle(
+                                                  fontSize: 32,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: _getTileTextColor(number),
+                                                ),
+                                              )
+                                            : null,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 20),
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
+                  child: Column(
+                    children: [
+                      Text(
+                        'NEXT',
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                      const SizedBox(height: 12),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          Column(
+                            children: [
+                              _buildTile(game.currentNumber, size: 70),
+                              const SizedBox(height: 4),
+                              Text(
+                                '今',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[700],
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ],
+                          ),
+                          const SizedBox(width: 24),
+                          Column(
+                            children: [
+                              _buildTile(game.nextNumber, size: 60),
+                              const SizedBox(height: 4),
+                              Text(
+                                '次',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 10),
+              ],
+            ),
+            if (showCombo)
+              Center(
+                child: AnimatedBuilder(
+                  animation: _comboController,
+                  builder: (context, child) {
+                    final opacity = 1.0 - _comboController.value;
+                    final scale = 1.0 + _comboController.value * 0.5;
+                    return Opacity(
+                      opacity: opacity,
+                      child: Transform.scale(
+                        scale: scale,
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                          decoration: BoxDecoration(
+                            color: Colors.orange,
+                            borderRadius: BorderRadius.circular(20),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Text(
+                            'COMBO x${game.comboCount}',
+                            style: const TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            if (showScorePopup && lastMergedRow != null && lastMergedCol != null)
+              Positioned.fill(
+                child: AnimatedBuilder(
+                  animation: _scorePopupController,
+                  builder: (context, child) {
+                    final offset = _scorePopupController.value * 50;
+                    final opacity = 1.0 - _scorePopupController.value;
+                    return Opacity(
+                      opacity: opacity,
+                      child: Align(
+                        alignment: Alignment.center,
+                        child: Transform.translate(
+                          offset: Offset(0, -offset),
+                          child: Text(
+                            '+$lastAddedScore',
+                            style: const TextStyle(
+                              fontSize: 32,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF5E35B1),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
