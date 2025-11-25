@@ -189,119 +189,128 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             width: 2,
           ),
         ),
-        title: Column(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [GameColors.accentPink, GameColors.accentPinkLight],
-                ),
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: GameColors.accentPink.withValues(alpha: 0.5),
-                    blurRadius: 20,
-                    spreadRadius: 5,
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.emoji_events,
-                color: Colors.white,
-                size: 48,
-              ),
+        title: _buildDialogTitle(isNewRecord),
+        content: _buildDialogContent(isNewRecord),
+        actions: [_buildRestartButton(context)],
+      ),
+    );
+  }
+
+  Widget _buildDialogTitle(bool isNewRecord) {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [GameColors.accentPink, GameColors.accentPinkLight],
             ),
-            const SizedBox(height: 16),
-            Text(
-              isNewRecord ? 'NEW RECORD!' : 'GAME OVER',
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: isNewRecord ? GameColors.accentPinkLight : Colors.white,
-                letterSpacing: 3,
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: GameColors.accentPink.withValues(alpha: 0.5),
+                blurRadius: 20,
+                spreadRadius: 5,
               ),
-            ),
-          ],
+            ],
+          ),
+          child: const Icon(
+            Icons.emoji_events,
+            color: Colors.white,
+            size: 48,
+          ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text(
-              'SCORE',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.white60,
-                letterSpacing: 2,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '${game.score}',
-              style: const TextStyle(
-                fontSize: 56,
-                fontWeight: FontWeight.w900,
+        const SizedBox(height: 16),
+        Text(
+          isNewRecord ? 'NEW RECORD!' : 'GAME OVER',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: isNewRecord ? GameColors.accentPinkLight : Colors.white,
+            letterSpacing: 3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildDialogContent(bool isNewRecord) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'SCORE',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white60,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${game.score}',
+          style: const TextStyle(
+            fontSize: 56,
+            fontWeight: FontWeight.w900,
+            color: GameColors.accentPink,
+            shadows: [
+              Shadow(
                 color: GameColors.accentPink,
-                shadows: [
-                  Shadow(
-                    color: GameColors.accentPink,
-                    blurRadius: 20,
-                  ),
-                ],
-              ),
-            ),
-            if (isNewRecord) ...[
-              const SizedBox(height: 8),
-              const Text(
-                '🎉 新記録達成！',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                  color: GameColors.accentPinkLight,
-                ),
+                blurRadius: 20,
               ),
             ],
-            if (!isNewRecord && ScoreManager().bestScore > 0) ...[
-              const SizedBox(height: 8),
-              Text(
-                'BEST: ${ScoreManager().bestScore}',
-                style: const TextStyle(
-                  fontSize: 14,
-                  color: Colors.white60,
-                ),
-              ),
-            ],
-          ],
+          ),
         ),
-        actions: [
-          // リスタートボタン（広告表示付き）
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(context).pop();
-                _restartGame();
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: GameColors.accentPink,
-                foregroundColor: Colors.white,
-                padding: const EdgeInsets.symmetric(vertical: 18),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                elevation: 0,
-              ),
-              child: const Text(
-                'RESTART',
-                style: TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w900,
-                  letterSpacing: 2,
-                ),
-              ),
+        if (isNewRecord) ...[
+          const SizedBox(height: 8),
+          const Text(
+            '🎉 新記録達成！',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: GameColors.accentPinkLight,
             ),
           ),
         ],
+        if (!isNewRecord && ScoreManager().bestScore > 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            'BEST: ${ScoreManager().bestScore}',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white60,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  Widget _buildRestartButton(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () {
+          Navigator.of(context).pop();
+          _restartGame();
+        },
+        style: ElevatedButton.styleFrom(
+          backgroundColor: GameColors.accentPink,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 18),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+          elevation: 0,
+        ),
+        child: const Text(
+          'RESTART',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 2,
+          ),
+        ),
       ),
     );
   }

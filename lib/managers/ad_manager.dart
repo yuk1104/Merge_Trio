@@ -69,15 +69,11 @@ class AdManager {
     if (kIsWeb) return;
 
     try {
-      print('AdManager: 広告SDKを初期化中...');
       await MobileAds.instance.initialize();
-      print('AdManager: 広告SDK初期化完了');
-      print('AdManager: 使用する広告ID - インタースティシャル: $_interstitialAdUnitId');
-      print('AdManager: 使用する広告ID - バナー: $_bannerAdUnitId');
       _loadInterstitialAd();
       _loadBannerAd();
     } catch (e) {
-      print('AdManager: 初期化エラー: $e');
+      // 初期化エラーを無視
     }
   }
 
@@ -86,18 +82,15 @@ class AdManager {
     if (kIsWeb) return;
 
     try {
-      print('AdManager: バナー広告を読み込み中... (AdUnitId: $_bannerAdUnitId)');
       _bannerAd = BannerAd(
         adUnitId: _bannerAdUnitId,
         size: AdSize.banner,
         request: const AdRequest(),
         listener: BannerAdListener(
           onAdLoaded: (ad) {
-            print('AdManager: バナー広告の読み込み成功');
             _isBannerAdLoaded = true;
           },
           onAdFailedToLoad: (ad, error) {
-            print('AdManager: バナー広告の読み込み失敗: $error');
             ad.dispose();
             _isBannerAdLoaded = false;
             // 失敗したら少し待ってから再読み込み
@@ -109,7 +102,6 @@ class AdManager {
       );
       _bannerAd!.load();
     } catch (e) {
-      print('AdManager: バナー広告の読み込み例外: $e');
       _isBannerAdLoaded = false;
     }
   }
@@ -119,25 +111,21 @@ class AdManager {
     if (kIsWeb) return;
 
     try {
-      print('AdManager: インタースティシャル広告を読み込み中... (AdUnitId: $_interstitialAdUnitId)');
       InterstitialAd.load(
         adUnitId: _interstitialAdUnitId,
         request: const AdRequest(),
         adLoadCallback: InterstitialAdLoadCallback(
           onAdLoaded: (ad) {
-            print('AdManager: インタースティシャル広告の読み込み成功');
             _interstitialAd = ad;
             _isAdLoaded = true;
 
             ad.fullScreenContentCallback = FullScreenContentCallback(
               onAdDismissedFullScreenContent: (ad) {
-                print('AdManager: インタースティシャル広告が閉じられた');
                 ad.dispose();
                 _isAdLoaded = false;
                 _loadInterstitialAd(); // 次の広告をプリロード
               },
               onAdFailedToShowFullScreenContent: (ad, error) {
-                print('AdManager: インタースティシャル広告の表示失敗: $error');
                 ad.dispose();
                 _isAdLoaded = false;
                 _loadInterstitialAd();
@@ -145,7 +133,6 @@ class AdManager {
             );
           },
           onAdFailedToLoad: (error) {
-            print('AdManager: インタースティシャル広告の読み込み失敗: $error');
             _isAdLoaded = false;
             // 失敗したら少し待ってから再読み込み
             Future.delayed(const Duration(seconds: 5), () {
@@ -155,7 +142,6 @@ class AdManager {
         ),
       );
     } catch (e) {
-      print('AdManager: インタースティシャル広告の読み込み例外: $e');
       _isAdLoaded = false;
     }
   }
@@ -167,18 +153,15 @@ class AdManager {
       return;
     }
 
-    print('AdManager: インタースティシャル広告表示を試行 (読み込み状態: $_isAdLoaded)');
     if (_isAdLoaded && _interstitialAd != null) {
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
-          print('AdManager: 広告が閉じられました');
           ad.dispose();
           _isAdLoaded = false;
           _loadInterstitialAd();
           onAdClosed();
         },
         onAdFailedToShowFullScreenContent: (ad, error) {
-          print('AdManager: 広告表示に失敗: $error');
           ad.dispose();
           _isAdLoaded = false;
           _loadInterstitialAd();
@@ -188,7 +171,6 @@ class AdManager {
 
       await _interstitialAd!.show();
     } else {
-      print('AdManager: 広告が読み込まれていないため、スキップします');
       // 広告が読み込まれていない場合はすぐにコールバックを実行
       onAdClosed();
     }

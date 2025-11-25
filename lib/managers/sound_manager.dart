@@ -7,21 +7,30 @@ class SoundManager {
     _initializePlayers();
   }
 
-  bool _soundEnabled = true;
-  final List<AudioPlayer> _tapPlayers = [];
-  final List<AudioPlayer> _mergePlayers = [];
-  AudioPlayer? _comboPlayer;
-  AudioPlayer? _gameOverPlayer;
-  bool _initialized = false;
-  static const int _maxSimultaneousSounds = 5; // 同時再生可能な音の数
-  int _currentTapPlayerIndex = 0; // タップ音用のインデックス
-  int _currentMergePlayerIndex = 0; // マージ音用のインデックス
+  // 定数
+  static const int _maxSimultaneousSounds = 5;
+  static const double _tapVolume = 0.2;
+  static const double _mergeVolume = 0.3;
+  static const double _comboVolume = 0.4;
+  static const double _gameOverVolume = 0.4;
 
   // フリーの効果音URL（Mixkit - https://mixkit.co/）
   static const String _tapSound = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
   static const String _mergeSound = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
   static const String _comboSound = 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3';
   static const String _gameOverSound = 'https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3';
+
+  // 状態管理
+  bool _soundEnabled = true;
+  bool _initialized = false;
+  int _currentTapPlayerIndex = 0;
+  int _currentMergePlayerIndex = 0;
+
+  // オーディオプレイヤー
+  final List<AudioPlayer> _tapPlayers = [];
+  final List<AudioPlayer> _mergePlayers = [];
+  AudioPlayer? _comboPlayer;
+  AudioPlayer? _gameOverPlayer;
 
   Future<void> _initializePlayers() async {
     if (_initialized) return;
@@ -31,7 +40,7 @@ class SoundManager {
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
         await player.setUrl(_tapSound);
-        await player.setVolume(0.2);
+        await player.setVolume(_tapVolume);
         _tapPlayers.add(player);
       }
 
@@ -39,7 +48,7 @@ class SoundManager {
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
         await player.setUrl(_mergeSound);
-        await player.setVolume(0.3);
+        await player.setVolume(_mergeVolume);
         _mergePlayers.add(player);
       }
 
@@ -50,8 +59,8 @@ class SoundManager {
       await _comboPlayer?.setUrl(_comboSound);
       await _gameOverPlayer?.setUrl(_gameOverSound);
 
-      await _comboPlayer?.setVolume(0.4);
-      await _gameOverPlayer?.setVolume(0.4);
+      await _comboPlayer?.setVolume(_comboVolume);
+      await _gameOverPlayer?.setVolume(_gameOverVolume);
 
       _initialized = true;
     } catch (e) {
