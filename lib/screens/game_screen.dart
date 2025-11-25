@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:async';
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import '../models/game_model.dart';
 import '../models/particle.dart';
 import '../managers/sound_manager.dart';
+import '../managers/ad_manager.dart';
+import '../managers/score_manager.dart';
 import '../widgets/game_colors.dart';
 import '../widgets/game_tile.dart';
 import '../widgets/particle_painter.dart';
@@ -154,15 +157,25 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _restartGame() {
-    setState(() {
-      game.reset();
-      showScorePopup = false;
-      showCombo = false;
-      particles.clear();
-    });
+    // 広告を表示してからゲームをリスタート
+    AdManager().showInterstitialAd(
+      onAdClosed: () {
+        setState(() {
+          game.reset();
+          showScorePopup = false;
+          showCombo = false;
+          particles.clear();
+        });
+      },
+    );
   }
 
-  void _showGameOverDialog() {
+  void _showGameOverDialog() async {
+    // ベストスコアをチェックして更新
+    final isNewRecord = await ScoreManager().checkAndUpdateBestScore(game.score);
+
+    if (!mounted) return;
+
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -200,12 +213,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 16),
-            const Text(
-              'GAME OVER',
+            Text(
+              isNewRecord ? 'NEW RECORD!' : 'GAME OVER',
               style: TextStyle(
                 fontSize: 28,
                 fontWeight: FontWeight.w900,
-                color: Colors.white,
+                color: isNewRecord ? GameColors.accentPinkLight : Colors.white,
                 letterSpacing: 3,
               ),
             ),
@@ -237,9 +250,31 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ],
               ),
             ),
+            if (isNewRecord) ...[
+              const SizedBox(height: 8),
+              const Text(
+                '🎉 新記録達成！',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: GameColors.accentPinkLight,
+                ),
+              ),
+            ],
+            if (!isNewRecord && ScoreManager().bestScore > 0) ...[
+              const SizedBox(height: 8),
+              Text(
+                'BEST: ${ScoreManager().bestScore}',
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: Colors.white60,
+                ),
+              ),
+            ],
           ],
         ),
         actions: [
+          // リスタートボタン（広告表示付き）
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
@@ -257,7 +292,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 elevation: 0,
               ),
               child: const Text(
-                'PLAY AGAIN',
+                'RESTART',
                 style: TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.w900,
@@ -287,7 +322,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   _buildScoreDisplay(),
                   Expanded(child: _buildGameBoard()),
                   _buildNextTiles(),
-                  const SizedBox(height: 20),
+                  // バナー広告の表示
+                  _buildBannerAd(),
                 ],
               ),
               // パーティクルエフェクト（タップを無視）
@@ -310,6 +346,19 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+
+  Widget _buildBannerAd() {
+    final adManager = AdManager();
+    if (adManager.isBannerAdLoaded && adManager.bannerAd != null) {
+      return Container(
+        alignment: Alignment.center,
+        width: adManager.bannerAd!.size.width.toDouble(),
+        height: adManager.bannerAd!.size.height.toDouble(),
+        child: AdWidget(ad: adManager.bannerAd!),
+      );
+    }
+    return const SizedBox(height: 20);
   }
 
   Widget _buildAppBar() {
@@ -352,31 +401,65 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
+        mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
-          const Text(
-            'SCORE',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white60,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(width: 16),
-          Text(
-            '${game.score}',
-            style: const TextStyle(
-              fontSize: 40,
-              fontWeight: FontWeight.w900,
-              color: Colors.white,
-              shadows: [
-                Shadow(
-                  color: GameColors.accentPink,
-                  blurRadius: 10,
+          // 現在のスコア
+          Column(
+            children: [
+              const Text(
+                'SCORE',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white60,
+                  letterSpacing: 2,
                 ),
-              ],
-            ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${game.score}',
+                style: const TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: GameColors.accentPink,
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          // ベストスコア
+          Column(
+            children: [
+              const Text(
+                'BEST',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white60,
+                  letterSpacing: 2,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                '${ScoreManager().bestScore}',
+                style: TextStyle(
+                  fontSize: 36,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white.withValues(alpha: 0.8),
+                  shadows: const [
+                    Shadow(
+                      color: GameColors.accentPinkLight,
+                      blurRadius: 10,
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ],
       ),

@@ -8,11 +8,14 @@ class SoundManager {
   }
 
   bool _soundEnabled = true;
-  AudioPlayer? _tapPlayer;
-  AudioPlayer? _mergePlayer;
+  final List<AudioPlayer> _tapPlayers = [];
+  final List<AudioPlayer> _mergePlayers = [];
   AudioPlayer? _comboPlayer;
   AudioPlayer? _gameOverPlayer;
   bool _initialized = false;
+  static const int _maxSimultaneousSounds = 5; // 同時再生可能な音の数
+  int _currentTapPlayerIndex = 0; // タップ音用のインデックス
+  int _currentMergePlayerIndex = 0; // マージ音用のインデックス
 
   // フリーの効果音URL（Mixkit - https://mixkit.co/）
   static const String _tapSound = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
@@ -24,20 +27,29 @@ class SoundManager {
     if (_initialized) return;
 
     try {
-      _tapPlayer = AudioPlayer();
-      _mergePlayer = AudioPlayer();
+      // タップ音用のプレイヤーを複数作成
+      for (int i = 0; i < _maxSimultaneousSounds; i++) {
+        final player = AudioPlayer();
+        await player.setUrl(_tapSound);
+        await player.setVolume(0.2);
+        _tapPlayers.add(player);
+      }
+
+      // マージ音用のプレイヤーを複数作成
+      for (int i = 0; i < _maxSimultaneousSounds; i++) {
+        final player = AudioPlayer();
+        await player.setUrl(_mergeSound);
+        await player.setVolume(0.3);
+        _mergePlayers.add(player);
+      }
+
+      // コンボとゲームオーバーは1つずつ
       _comboPlayer = AudioPlayer();
       _gameOverPlayer = AudioPlayer();
 
-      // 事前にURLを設定
-      await _tapPlayer?.setUrl(_tapSound);
-      await _mergePlayer?.setUrl(_mergeSound);
       await _comboPlayer?.setUrl(_comboSound);
       await _gameOverPlayer?.setUrl(_gameOverSound);
 
-      // 音量を設定
-      await _tapPlayer?.setVolume(0.2);
-      await _mergePlayer?.setVolume(0.3);
       await _comboPlayer?.setVolume(0.4);
       await _gameOverPlayer?.setVolume(0.4);
 
@@ -47,21 +59,31 @@ class SoundManager {
     }
   }
 
-  Future<void> playTap() async {
-    if (!_soundEnabled || !_initialized || _tapPlayer == null) return;
+  void playTap() {
+    if (!_soundEnabled || !_initialized || _tapPlayers.isEmpty) return;
     try {
-      await _tapPlayer!.seek(Duration.zero);
-      _tapPlayer!.play();
+      // ラウンドロビン方式で次のプレイヤーを使用
+      final player = _tapPlayers[_currentTapPlayerIndex];
+      _currentTapPlayerIndex = (_currentTapPlayerIndex + 1) % _tapPlayers.length;
+
+      // 即座に再生
+      player.seek(Duration.zero);
+      player.play();
     } catch (e) {
       // エラーを無視
     }
   }
 
-  Future<void> playMerge(int level) async {
-    if (!_soundEnabled || !_initialized || _mergePlayer == null) return;
+  void playMerge(int level) {
+    if (!_soundEnabled || !_initialized || _mergePlayers.isEmpty) return;
     try {
-      await _mergePlayer!.seek(Duration.zero);
-      _mergePlayer!.play();
+      // ラウンドロビン方式で次のプレイヤーを使用
+      final player = _mergePlayers[_currentMergePlayerIndex];
+      _currentMergePlayerIndex = (_currentMergePlayerIndex + 1) % _mergePlayers.length;
+
+      // 即座に再生
+      player.seek(Duration.zero);
+      player.play();
     } catch (e) {
       // エラーを無視
     }
@@ -70,8 +92,10 @@ class SoundManager {
   Future<void> playCombo(int combo) async {
     if (!_soundEnabled || !_initialized || _comboPlayer == null) return;
     try {
+      // 再生中なら即座に停止してリセット
+      await _comboPlayer!.stop();
       await _comboPlayer!.seek(Duration.zero);
-      _comboPlayer!.play();
+      await _comboPlayer!.play();
     } catch (e) {
       // エラーを無視
     }
@@ -80,8 +104,10 @@ class SoundManager {
   Future<void> playGameOver() async {
     if (!_soundEnabled || !_initialized || _gameOverPlayer == null) return;
     try {
+      // 再生中なら即座に停止してリセット
+      await _gameOverPlayer!.stop();
       await _gameOverPlayer!.seek(Duration.zero);
-      _gameOverPlayer!.play();
+      await _gameOverPlayer!.play();
     } catch (e) {
       // エラーを無視
     }
@@ -94,8 +120,12 @@ class SoundManager {
   bool get isSoundEnabled => _soundEnabled;
 
   void dispose() {
-    _tapPlayer?.dispose();
-    _mergePlayer?.dispose();
+    for (var player in _tapPlayers) {
+      player.dispose();
+    }
+    for (var player in _mergePlayers) {
+      player.dispose();
+    }
     _comboPlayer?.dispose();
     _gameOverPlayer?.dispose();
   }
