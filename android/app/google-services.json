@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "821132585892",
+    "project_id": "mergetrio-42f1d",
+    "storage_bucket": "mergetrio-42f1d.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:821132585892:android:9767b1ab86ab2f2bd42f31",
+        "android_client_info": {
+          "package_name": "com.yuk.MergeTrio"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOOqkaRgI424jSO_WWmdP21lU6x8fWtRw"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

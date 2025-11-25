@@ -1,0 +1,217 @@
+import 'package:flutter/material.dart';
+import '../managers/ranking_manager.dart';
+import '../widgets/game_colors.dart';
+
+class RankingScreen extends StatefulWidget {
+  const RankingScreen({super.key});
+
+  @override
+  State<RankingScreen> createState() => _RankingScreenState();
+}
+
+class _RankingScreenState extends State<RankingScreen> {
+  List<RankingEntry> _rankings = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadRankings();
+  }
+
+  Future<void> _loadRankings() async {
+    final rankings = await RankingManager().getTopRankings(limit: 100);
+    if (mounted) {
+      setState(() {
+        _rankings = rankings;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: GameColors.backgroundGradient,
+        ),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildHeader(),
+              Expanded(
+                child: _isLoading
+                    ? const Center(
+                        child: CircularProgressIndicator(
+                          color: GameColors.accentPink,
+                        ),
+                      )
+                    : _rankings.isEmpty
+                        ? _buildEmptyState()
+                        : _buildRankingList(),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildHeader() {
+    return Padding(
+      padding: const EdgeInsets.all(20),
+      child: Row(
+        children: [
+          IconButton(
+            icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+            onPressed: () => Navigator.pop(context),
+          ),
+          const Expanded(
+            child: Text(
+              'RANKING',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 3,
+                shadows: [
+                  Shadow(
+                    color: GameColors.accentPink,
+                    blurRadius: 15,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(width: 48), // Balance for back button
+        ],
+      ),
+    );
+  }
+
+  Widget _buildEmptyState() {
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.leaderboard,
+            size: 80,
+            color: Colors.white38,
+          ),
+          SizedBox(height: 20),
+          Text(
+            'まだランキングデータがありません',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.white60,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildRankingList() {
+    return ListView.builder(
+      padding: const EdgeInsets.symmetric(horizontal: 20),
+      itemCount: _rankings.length,
+      itemBuilder: (context, index) {
+        final entry = _rankings[index];
+        return _buildRankingTile(index + 1, entry);
+      },
+    );
+  }
+
+  Widget _buildRankingTile(int rank, RankingEntry entry) {
+    Color rankColor = Colors.white;
+    IconData? medalIcon;
+
+    if (rank == 1) {
+      rankColor = const Color(0xFFFFD700); // Gold
+      medalIcon = Icons.emoji_events;
+    } else if (rank == 2) {
+      rankColor = const Color(0xFFC0C0C0); // Silver
+      medalIcon = Icons.emoji_events;
+    } else if (rank == 3) {
+      rankColor = const Color(0xFFCD7F32); // Bronze
+      medalIcon = Icons.emoji_events;
+    }
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: rank <= 3 ? 0.15 : 0.1),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(
+          color: rank <= 3
+              ? rankColor.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.2),
+          width: rank <= 3 ? 2 : 1.5,
+        ),
+        boxShadow: rank <= 3
+            ? [
+                BoxShadow(
+                  color: rankColor.withValues(alpha: 0.3),
+                  blurRadius: 10,
+                  spreadRadius: 2,
+                ),
+              ]
+            : null,
+      ),
+      child: Row(
+        children: [
+          // ランク
+          SizedBox(
+            width: 50,
+            child: Row(
+              children: [
+                if (medalIcon != null)
+                  Icon(
+                    medalIcon,
+                    color: rankColor,
+                    size: 24,
+                  )
+                else
+                  Text(
+                    '$rank',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: rankColor,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+          const SizedBox(width: 12),
+          // プレイヤー名
+          Expanded(
+            child: Text(
+              entry.playerName,
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w600,
+                color: Colors.white,
+              ),
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          const SizedBox(width: 12),
+          // スコア
+          Text(
+            '${entry.score}',
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: GameColors.accentPink,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}

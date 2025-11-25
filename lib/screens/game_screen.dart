@@ -7,6 +7,7 @@ import '../models/particle.dart';
 import '../managers/sound_manager.dart';
 import '../managers/ad_manager.dart';
 import '../managers/score_manager.dart';
+import '../screens/ranking_screen.dart';
 import '../widgets/game_colors.dart';
 import '../widgets/game_tile.dart';
 import '../widgets/particle_painter.dart';
@@ -180,140 +181,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       context: context,
       barrierDismissible: false,
       barrierColor: Colors.black.withValues(alpha: 0.8),
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(24),
-          side: BorderSide(
-            color: GameColors.accentPink.withValues(alpha: 0.5),
-            width: 2,
-          ),
-        ),
-        title: _buildDialogTitle(isNewRecord),
-        content: _buildDialogContent(isNewRecord),
-        actions: [_buildRestartButton(context)],
+      builder: (context) => _GameOverDialog(
+        score: game.score,
+        isNewRecord: isNewRecord,
+        onRestart: _restartGame,
       ),
     );
   }
 
-  Widget _buildDialogTitle(bool isNewRecord) {
-    return Column(
-      children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [GameColors.accentPink, GameColors.accentPinkLight],
-            ),
-            shape: BoxShape.circle,
-            boxShadow: [
-              BoxShadow(
-                color: GameColors.accentPink.withValues(alpha: 0.5),
-                blurRadius: 20,
-                spreadRadius: 5,
-              ),
-            ],
-          ),
-          child: const Icon(
-            Icons.emoji_events,
-            color: Colors.white,
-            size: 48,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          isNewRecord ? 'NEW RECORD!' : 'GAME OVER',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            color: isNewRecord ? GameColors.accentPinkLight : Colors.white,
-            letterSpacing: 3,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _buildDialogContent(bool isNewRecord) {
-    return Column(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        const Text(
-          'SCORE',
-          style: TextStyle(
-            fontSize: 14,
-            color: Colors.white60,
-            letterSpacing: 2,
-          ),
-        ),
-        const SizedBox(height: 8),
-        Text(
-          '${game.score}',
-          style: const TextStyle(
-            fontSize: 56,
-            fontWeight: FontWeight.w900,
-            color: GameColors.accentPink,
-            shadows: [
-              Shadow(
-                color: GameColors.accentPink,
-                blurRadius: 20,
-              ),
-            ],
-          ),
-        ),
-        if (isNewRecord) ...[
-          const SizedBox(height: 8),
-          const Text(
-            '🎉 新記録達成！',
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: GameColors.accentPinkLight,
-            ),
-          ),
-        ],
-        if (!isNewRecord && ScoreManager().bestScore > 0) ...[
-          const SizedBox(height: 8),
-          Text(
-            'BEST: ${ScoreManager().bestScore}',
-            style: const TextStyle(
-              fontSize: 14,
-              color: Colors.white60,
-            ),
-          ),
-        ],
-      ],
-    );
-  }
-
-  Widget _buildRestartButton(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton(
-        onPressed: () {
-          Navigator.of(context).pop();
-          _restartGame();
-        },
-        style: ElevatedButton.styleFrom(
-          backgroundColor: GameColors.accentPink,
-          foregroundColor: Colors.white,
-          padding: const EdgeInsets.symmetric(vertical: 18),
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(16),
-          ),
-          elevation: 0,
-        ),
-        child: const Text(
-          'RESTART',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 2,
-          ),
-        ),
-      ),
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -372,27 +247,48 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildAppBar() {
     return Container(
-      padding: const EdgeInsets.symmetric(vertical: 20),
-      child: Center(
-        child: const Text(
-          'MERGE TRIO',
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.w900,
-            color: Colors.white,
-            letterSpacing: 3,
-            shadows: [
-              Shadow(
-                color: GameColors.accentPink,
-                blurRadius: 15,
+      padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          const SizedBox(width: 48), // Balance for ranking button
+          const Expanded(
+            child: Text(
+              'MERGE TRIO',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                fontSize: 28,
+                fontWeight: FontWeight.w900,
+                color: Colors.white,
+                letterSpacing: 3,
+                shadows: [
+                  Shadow(
+                    color: GameColors.accentPink,
+                    blurRadius: 15,
+                  ),
+                  Shadow(
+                    color: GameColors.accentPink,
+                    blurRadius: 30,
+                  ),
+                ],
               ),
-              Shadow(
-                color: GameColors.accentPink,
-                blurRadius: 30,
-              ),
-            ],
+            ),
           ),
-        ),
+          IconButton(
+            icon: const Icon(
+              Icons.leaderboard,
+              color: Colors.white,
+              size: 28,
+            ),
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const RankingScreen(),
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
@@ -670,5 +566,216 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
       ),
     );
+  }
+}
+
+class _GameOverDialog extends StatefulWidget {
+  final int score;
+  final bool isNewRecord;
+  final VoidCallback onRestart;
+
+  const _GameOverDialog({
+    required this.score,
+    required this.isNewRecord,
+    required this.onRestart,
+  });
+
+  @override
+  State<_GameOverDialog> createState() => _GameOverDialogState();
+}
+
+class _GameOverDialogState extends State<_GameOverDialog> {
+  void _viewRankings() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => const RankingScreen(),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1A1A2E),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(24),
+        side: BorderSide(
+          color: GameColors.accentPink.withValues(alpha: 0.5),
+          width: 2,
+        ),
+      ),
+      title: _buildTitle(),
+      content: _buildContent(),
+      actions: _buildActions(),
+    );
+  }
+
+  Widget _buildTitle() {
+    return Column(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [GameColors.accentPink, GameColors.accentPinkLight],
+            ),
+            shape: BoxShape.circle,
+            boxShadow: [
+              BoxShadow(
+                color: GameColors.accentPink.withValues(alpha: 0.5),
+                blurRadius: 20,
+                spreadRadius: 5,
+              ),
+            ],
+          ),
+          child: const Icon(
+            Icons.emoji_events,
+            color: Colors.white,
+            size: 48,
+          ),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          widget.isNewRecord ? 'NEW RECORD!' : 'GAME OVER',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.w900,
+            color: widget.isNewRecord ? GameColors.accentPinkLight : Colors.white,
+            letterSpacing: 3,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildContent() {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'SCORE',
+          style: TextStyle(
+            fontSize: 14,
+            color: Colors.white60,
+            letterSpacing: 2,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          '${widget.score}',
+          style: const TextStyle(
+            fontSize: 56,
+            fontWeight: FontWeight.w900,
+            color: GameColors.accentPink,
+            shadows: [
+              Shadow(
+                color: GameColors.accentPink,
+                blurRadius: 20,
+              ),
+            ],
+          ),
+        ),
+        if (widget.isNewRecord) ...[
+          const SizedBox(height: 16),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: GameColors.accentPinkLight.withValues(alpha: 0.2),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(
+                color: GameColors.accentPinkLight.withValues(alpha: 0.5),
+              ),
+            ),
+            child: const Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.celebration, color: GameColors.accentPinkLight),
+                SizedBox(width: 8),
+                Text(
+                  '🎉 新記録達成！',
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: GameColors.accentPinkLight,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            'ランキングに自動送信されました',
+            style: TextStyle(
+              fontSize: 12,
+              color: Colors.white60,
+            ),
+          ),
+        ],
+        if (!widget.isNewRecord && ScoreManager().bestScore > 0) ...[
+          const SizedBox(height: 8),
+          Text(
+            'BEST: ${ScoreManager().bestScore}',
+            style: const TextStyle(
+              fontSize: 14,
+              color: Colors.white60,
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
+  List<Widget> _buildActions() {
+    return [
+      SizedBox(
+        width: double.infinity,
+        child: OutlinedButton(
+          onPressed: _viewRankings,
+          style: OutlinedButton.styleFrom(
+            foregroundColor: GameColors.accentPinkLight,
+            padding: const EdgeInsets.symmetric(vertical: 14),
+            side: const BorderSide(color: GameColors.accentPinkLight, width: 2),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+          ),
+          child: const Text(
+            'ランキングを見る',
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1,
+            ),
+          ),
+        ),
+      ),
+      const SizedBox(height: 8),
+      SizedBox(
+        width: double.infinity,
+        child: ElevatedButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            widget.onRestart();
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: GameColors.accentPink,
+            foregroundColor: Colors.white,
+            padding: const EdgeInsets.symmetric(vertical: 18),
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(16),
+            ),
+            elevation: 0,
+          ),
+          child: const Text(
+            'RESTART',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              letterSpacing: 2,
+            ),
+          ),
+        ),
+      ),
+    ];
   }
 }
