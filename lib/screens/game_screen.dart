@@ -7,10 +7,12 @@ import '../models/particle.dart';
 import '../managers/sound_manager.dart';
 import '../managers/ad_manager.dart';
 import '../managers/score_manager.dart';
+import '../managers/player_manager.dart';
 import '../screens/ranking_screen.dart';
 import '../widgets/game_colors.dart';
 import '../widgets/game_tile.dart';
 import '../widgets/particle_painter.dart';
+import '../main.dart';
 
 class GameScreen extends StatefulWidget {
   const GameScreen({super.key});
@@ -33,11 +35,13 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   final SoundManager _soundManager = SoundManager();
   List<Particle> particles = [];
   Timer? _particleTimer;
+  String _playerName = '';
 
   @override
   void initState() {
     super.initState();
     game = GameModel();
+    _loadPlayerName();
     _tileAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -70,6 +74,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _particleController.dispose();
     _particleTimer?.cancel();
     super.dispose();
+  }
+
+  Future<void> _loadPlayerName() async {
+    final name = await PlayerManager().getPlayerName();
+    if (mounted) {
+      setState(() {
+        _playerName = name ?? '';
+      });
+    }
   }
 
   void _updateParticles() {
@@ -189,6 +202,178 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _showSettingsDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: GameColors.accentPink.withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        title: const Text(
+          '設定',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.person, color: Colors.white),
+              title: Text(
+                'プレイヤー名: $_playerName',
+                style: const TextStyle(color: Colors.white),
+              ),
+            ),
+            const SizedBox(height: 20),
+            ElevatedButton.icon(
+              onPressed: () => _confirmDeleteAccount(),
+              icon: const Icon(Icons.delete_forever, color: Colors.white),
+              label: const Text(
+                'アカウントを削除',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red.shade700,
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              '閉じる',
+              style: TextStyle(
+                color: GameColors.accentPink,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmDeleteAccount() {
+    Navigator.pop(context); // 設定ダイアログを閉じる
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: Colors.red.withValues(alpha: 0.5),
+            width: 2,
+          ),
+        ),
+        title: const Row(
+          children: [
+            Icon(Icons.warning, color: Colors.red, size: 28),
+            SizedBox(width: 10),
+            Text(
+              '確認',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+        content: const Text(
+          'アカウントを削除すると、すべてのデータ（スコア、ランキング）が完全に削除されます。\n\nこの操作は元に戻せません。本当に削除しますか？',
+          style: TextStyle(
+            color: Colors.white,
+            fontSize: 16,
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text(
+              'キャンセル',
+              style: TextStyle(
+                color: Colors.white70,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => _deleteAccount(),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.red.shade700,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              '削除する',
+              style: TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _deleteAccount() async {
+    Navigator.pop(context); // 確認ダイアログを閉じる
+
+    // ローディング表示
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(
+          color: GameColors.accentPink,
+        ),
+      ),
+    );
+
+    // アカウント削除を実行
+    final success = await PlayerManager().deleteAccount();
+
+    if (!mounted) return;
+
+    Navigator.pop(context); // ローディングを閉じる
+
+    if (success) {
+      // 削除成功 - アプリを再起動（名前登録画面に戻る）
+      if (!mounted) return;
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const InitialScreen()),
+        (route) => false,
+      );
+    } else {
+      // 削除失敗
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('アカウントの削除に失敗しました'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
 
   @override
   Widget build(BuildContext context) {
@@ -234,60 +419,87 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildBannerAd() {
     final adManager = AdManager();
-    if (adManager.isBannerAdLoaded && adManager.bannerAd != null) {
-      return Container(
-        alignment: Alignment.center,
-        width: adManager.bannerAd!.size.width.toDouble(),
-        height: adManager.bannerAd!.size.height.toDouble(),
-        child: AdWidget(ad: adManager.bannerAd!),
-      );
-    }
-    return const SizedBox(height: 20);
+    // 常にバナー広告の標準的な高さを確保（50px）
+    // これにより、広告読み込み時のレイアウトシフトを防ぐ
+    const double bannerHeight = 50.0;
+
+    return SizedBox(
+      height: bannerHeight,
+      child: adManager.isBannerAdLoaded && adManager.bannerAd != null
+          ? Container(
+              alignment: Alignment.center,
+              child: AdWidget(ad: adManager.bannerAd!),
+            )
+          : const SizedBox.shrink(), // 広告未読み込み時は空のスペースを確保
+    );
   }
 
   Widget _buildAppBar() {
     return Container(
       padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 20),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      child: Column(
         children: [
-          const SizedBox(width: 48), // Balance for ranking button
-          const Expanded(
-            child: Text(
-              'MERGE TRIO',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                fontSize: 28,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 3,
-                shadows: [
-                  Shadow(
-                    color: GameColors.accentPink,
-                    blurRadius: 15,
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              IconButton(
+                icon: const Icon(
+                  Icons.settings,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                onPressed: _showSettingsDialog,
+              ),
+              const Expanded(
+                child: Text(
+                  'MERGE TRIO',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    fontSize: 28,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white,
+                    letterSpacing: 3,
+                    shadows: [
+                      Shadow(
+                        color: GameColors.accentPink,
+                        blurRadius: 15,
+                      ),
+                      Shadow(
+                        color: GameColors.accentPink,
+                        blurRadius: 30,
+                      ),
+                    ],
                   ),
-                  Shadow(
-                    color: GameColors.accentPink,
-                    blurRadius: 30,
-                  ),
-                ],
+                ),
+              ),
+              IconButton(
+                icon: const Icon(
+                  Icons.leaderboard,
+                  color: Colors.white,
+                  size: 28,
+                ),
+                onPressed: () {
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const RankingScreen(),
+                    ),
+                  );
+                },
+              ),
+            ],
+          ),
+          if (_playerName.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                'Player: $_playerName',
+                style: TextStyle(
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
+                  color: Colors.white.withValues(alpha: 0.8),
+                ),
               ),
             ),
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.leaderboard,
-              color: Colors.white,
-              size: 28,
-            ),
-            onPressed: () {
-              Navigator.of(context).push(
-                MaterialPageRoute(
-                  builder: (context) => const RankingScreen(),
-                ),
-              );
-            },
-          ),
         ],
       ),
     );
@@ -295,8 +507,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildScoreDisplay() {
     return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20),
-      padding: const EdgeInsets.all(20),
+      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
@@ -372,79 +584,136 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   Widget _buildGameBoard() {
-    return Center(
-      child: AspectRatio(
-        aspectRatio: 1,
-        child: Container(
-          margin: const EdgeInsets.all(20),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.black.withValues(alpha: 0.3),
-            borderRadius: BorderRadius.circular(24),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.1),
-              width: 2,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // 利用可能なスペース全体を使って盤面サイズを計算
+        final maxWidth = constraints.maxWidth;
+        final maxHeight = constraints.maxHeight;
+
+        // 盤面のサイズを決定（小さい方を基準にする）
+        final boardSize = maxWidth < maxHeight ? maxWidth : maxHeight;
+
+        return Center(
+          child: SizedBox(
+            width: boardSize,
+            height: boardSize,
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: Colors.black.withValues(alpha: 0.3),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                  color: Colors.white.withValues(alpha: 0.1),
+                  width: 2,
+                ),
+              ),
+              child: GridView.builder(
+                physics: const NeverScrollableScrollPhysics(),
+                gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                  crossAxisCount: game.boardSize,
+                  crossAxisSpacing: 8,
+                  mainAxisSpacing: 8,
+                ),
+                itemCount: game.boardSize * game.boardSize,
+                itemBuilder: (context, index) {
+                  final row = index ~/ game.boardSize;
+                  final col = index % game.boardSize;
+                  final number = game.board[row][col];
+
+                  return GameTile(
+                    number: number,
+                    isAnimating: row == lastMergedRow && col == lastMergedCol,
+                    animationController: _tileAnimationController,
+                    onTap: () => _placeTile(row, col),
+                  );
+                },
+              ),
             ),
           ),
-          child: GridView.builder(
-            physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: game.boardSize,
-              crossAxisSpacing: 12,
-              mainAxisSpacing: 12,
-            ),
-            itemCount: game.boardSize * game.boardSize,
-            itemBuilder: (context, index) {
-              final row = index ~/ game.boardSize;
-              final col = index % game.boardSize;
-              final number = game.board[row][col];
+        );
+      },
+    );
+  }
 
-              return GameTile(
-                number: number,
-                isAnimating: row == lastMergedRow && col == lastMergedCol,
-                animationController: _tileAnimationController,
-                onTap: () => _placeTile(row, col),
-              );
-            },
+  Widget _buildNextTiles() {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          _buildNextTile(game.currentNumber, '現在', isLarge: true),
+          const SizedBox(width: 16),
+          _buildNextTile(game.nextNumber, '次', isLarge: false),
+          const SizedBox(width: 16),
+          // 入れ替えボタン
+          _buildSwapButton(),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSwapButton() {
+    final isEnabled = game.swapsRemaining > 0;
+
+    return Container(
+      decoration: BoxDecoration(
+        color: isEnabled
+            ? GameColors.accentPink.withValues(alpha: 0.2)
+            : Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isEnabled
+              ? GameColors.accentPink.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.1),
+          width: 1.5,
+        ),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: isEnabled ? _swapNumbers : null,
+          borderRadius: BorderRadius.circular(12),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  Icons.swap_horiz,
+                  color: isEnabled ? GameColors.accentPinkLight : Colors.white38,
+                  size: 20,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  '${game.swapsRemaining}',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                    color: isEnabled ? GameColors.accentPinkLight : Colors.white38,
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildNextTiles() {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 30, vertical: 20),
-      child: Column(
-        children: [
-          const Text(
-            'NEXT',
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.w600,
-              color: Colors.white60,
-              letterSpacing: 2,
-            ),
-          ),
-          const SizedBox(height: 16),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildNextTile(game.currentNumber, '現在', isLarge: true),
-              const SizedBox(width: 24),
-              _buildNextTile(game.nextNumber, '次', isLarge: false),
-            ],
-          ),
-        ],
-      ),
-    );
+  void _swapNumbers() {
+    if (game.swapNumbers()) {
+      _soundManager.playTap();
+      setState(() {});
+    }
   }
 
   Widget _buildNextTile(int number, String label, {required bool isLarge}) {
-    final size = isLarge ? 80.0 : 65.0;
+    final size = isLarge ? 65.0 : 55.0;
     final gradient = GameColors.getTileGradient(number);
 
     return Column(
+      mainAxisSize: MainAxisSize.min,
       children: [
         Container(
           width: size,
@@ -455,12 +724,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               end: Alignment.bottomRight,
               colors: gradient,
             ),
-            borderRadius: BorderRadius.circular(16),
+            borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: gradient.first.withValues(alpha: 0.5),
-                blurRadius: 15,
-                spreadRadius: 2,
+                color: gradient.first.withValues(alpha: 0.4),
+                blurRadius: 10,
+                spreadRadius: 1,
               ),
             ],
           ),
@@ -475,12 +744,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
           ),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 4),
         Text(
           label,
           style: TextStyle(
-            fontSize: 12,
-            color: Colors.white.withValues(alpha: isLarge ? 1.0 : 0.6),
+            fontSize: 11,
+            color: Colors.white.withValues(alpha: isLarge ? 0.9 : 0.6),
             fontWeight: isLarge ? FontWeight.w600 : FontWeight.normal,
           ),
         ),

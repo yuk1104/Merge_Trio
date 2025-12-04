@@ -1,5 +1,5 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
-import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
 import 'dart:io' show Platform;
 
 class AdManager {
@@ -15,27 +15,41 @@ class AdManager {
   // アプリID: ca-app-pub-3971807513032614~6098994742
   // プラットフォーム別の広告ユニットID
 
+  // デバッグモード設定
+  static const bool _useTestAds = false; // テスト広告を使う場合はtrueに変更
+
   // インタースティシャル広告ユニットID
   static String get _interstitialAdUnitId {
     if (kIsWeb) {
       return ''; // Web環境では使用しない
     }
 
+    // テスト広告を使用する場合
+    if (_useTestAds) {
+      try {
+        if (Platform.isAndroid) {
+          return 'ca-app-pub-3940256099942544/1033173712'; // テスト用Android
+        } else if (Platform.isIOS) {
+          return 'ca-app-pub-3940256099942544/4411468910'; // テスト用iOS
+        }
+      } catch (e) {
+        // Platform情報が取得できない場合
+      }
+      return 'ca-app-pub-3940256099942544/1033173712'; // デフォルト
+    }
+
+    // 本番広告を使用する場合
     try {
       if (Platform.isAndroid) {
-        // テスト用Android広告ID（必ず広告が表示される）
-        return 'ca-app-pub-3940256099942544/1033173712';
-        // 本番用: 'ca-app-pub-3971807513032614/8822179249'
+        return 'ca-app-pub-3971807513032614/8822179249';
       } else if (Platform.isIOS) {
-        // テスト用iOS広告ID（必ず広告が表示される）
-        return 'ca-app-pub-3940256099942544/4411468910';
-        // 本番用: 'ca-app-pub-3971807513032614/4075466639'
+        return 'ca-app-pub-3971807513032614/4075466639';
       }
     } catch (e) {
       // Platform情報が取得できない場合
     }
 
-    return 'ca-app-pub-3940256099942544/1033173712'; // デフォルト（Androidテスト用）
+    return 'ca-app-pub-3971807513032614/8822179249'; // デフォルト（Android本番用）
   }
 
   // バナー広告ユニットID
@@ -44,21 +58,32 @@ class AdManager {
       return ''; // Web環境では使用しない
     }
 
+    // テスト広告を使用する場合
+    if (_useTestAds) {
+      try {
+        if (Platform.isAndroid) {
+          return 'ca-app-pub-3940256099942544/6300978111'; // テスト用Android
+        } else if (Platform.isIOS) {
+          return 'ca-app-pub-3940256099942544/2934735716'; // テスト用iOS
+        }
+      } catch (e) {
+        // Platform情報が取得できない場合
+      }
+      return 'ca-app-pub-3940256099942544/6300978111'; // デフォルト
+    }
+
+    // 本番広告を使用する場合
     try {
       if (Platform.isAndroid) {
-        // テスト用Androidバナー広告ID（必ず広告が表示される）
-        return 'ca-app-pub-3940256099942544/6300978111';
-        // 本番用: 'ca-app-pub-3971807513032614/2476154940'
+        return 'ca-app-pub-3971807513032614/2476154940';
       } else if (Platform.isIOS) {
-        // テスト用iOSバナー広告ID（必ず広告が表示される）
-        return 'ca-app-pub-3940256099942544/2934735716';
-        // 本番用: 'ca-app-pub-3971807513032614/7983740292'
+        return 'ca-app-pub-3971807513032614/7983740292';
       }
     } catch (e) {
       // Platform情報が取得できない場合
     }
 
-    return 'ca-app-pub-3940256099942544/6300978111'; // デフォルト（Androidテスト用）
+    return 'ca-app-pub-3971807513032614/2476154940'; // デフォルト（Android本番用）
   }
 
   BannerAd? get bannerAd => _bannerAd;
@@ -70,10 +95,11 @@ class AdManager {
 
     try {
       await MobileAds.instance.initialize();
+      debugPrint('AdMob initialized successfully');
       _loadInterstitialAd();
       _loadBannerAd();
     } catch (e) {
-      // 初期化エラーを無視
+      debugPrint('AdMob initialization error: $e');
     }
   }
 
@@ -82,15 +108,18 @@ class AdManager {
     if (kIsWeb) return;
 
     try {
+      debugPrint('Loading banner ad with ID: $_bannerAdUnitId');
       _bannerAd = BannerAd(
         adUnitId: _bannerAdUnitId,
         size: AdSize.banner,
         request: const AdRequest(),
         listener: BannerAdListener(
           onAdLoaded: (ad) {
+            debugPrint('Banner ad loaded successfully');
             _isBannerAdLoaded = true;
           },
           onAdFailedToLoad: (ad, error) {
+            debugPrint('Banner ad failed to load: ${error.message}');
             ad.dispose();
             _isBannerAdLoaded = false;
             // 失敗したら少し待ってから再読み込み
@@ -102,6 +131,7 @@ class AdManager {
       );
       _bannerAd!.load();
     } catch (e) {
+      debugPrint('Banner ad loading exception: $e');
       _isBannerAdLoaded = false;
     }
   }
@@ -111,21 +141,25 @@ class AdManager {
     if (kIsWeb) return;
 
     try {
+      debugPrint('Loading interstitial ad with ID: $_interstitialAdUnitId');
       InterstitialAd.load(
         adUnitId: _interstitialAdUnitId,
         request: const AdRequest(),
         adLoadCallback: InterstitialAdLoadCallback(
           onAdLoaded: (ad) {
+            debugPrint('Interstitial ad loaded successfully');
             _interstitialAd = ad;
             _isAdLoaded = true;
 
             ad.fullScreenContentCallback = FullScreenContentCallback(
               onAdDismissedFullScreenContent: (ad) {
+                debugPrint('Interstitial ad dismissed');
                 ad.dispose();
                 _isAdLoaded = false;
                 _loadInterstitialAd(); // 次の広告をプリロード
               },
               onAdFailedToShowFullScreenContent: (ad, error) {
+                debugPrint('Interstitial ad failed to show: ${error.message}');
                 ad.dispose();
                 _isAdLoaded = false;
                 _loadInterstitialAd();
@@ -133,6 +167,7 @@ class AdManager {
             );
           },
           onAdFailedToLoad: (error) {
+            debugPrint('Interstitial ad failed to load: ${error.message}');
             _isAdLoaded = false;
             // 失敗したら少し待ってから再読み込み
             Future.delayed(const Duration(seconds: 5), () {
@@ -142,6 +177,7 @@ class AdManager {
         ),
       );
     } catch (e) {
+      debugPrint('Interstitial ad loading exception: $e');
       _isAdLoaded = false;
     }
   }
@@ -154,14 +190,17 @@ class AdManager {
     }
 
     if (_isAdLoaded && _interstitialAd != null) {
+      debugPrint('Showing interstitial ad');
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
+          debugPrint('Interstitial ad dismissed');
           ad.dispose();
           _isAdLoaded = false;
           _loadInterstitialAd();
           onAdClosed();
         },
         onAdFailedToShowFullScreenContent: (ad, error) {
+          debugPrint('Interstitial ad failed to show: ${error.message}');
           ad.dispose();
           _isAdLoaded = false;
           _loadInterstitialAd();
@@ -171,6 +210,7 @@ class AdManager {
 
       await _interstitialAd!.show();
     } else {
+      debugPrint('Interstitial ad not ready, skipping');
       // 広告が読み込まれていない場合はすぐにコールバックを実行
       onAdClosed();
     }

@@ -11,6 +11,7 @@ class GameModel {
   int? lastPlacedRow;
   int? lastPlacedCol;
   final Random _random = Random();
+  int swapsRemaining = 3; // 入れ替え可能な残り回数
 
   GameModel({this.boardSize = 4}) {
     reset();
@@ -21,6 +22,7 @@ class GameModel {
     score = 0;
     isGameOver = false;
     comboCount = 0;
+    swapsRemaining = 3; // リセット時に入れ替え回数も初期化
     generateNextNumber();
     shiftNextNumber();
   }
@@ -43,6 +45,18 @@ class GameModel {
   void shiftNextNumber() {
     currentNumber = nextNumber;
     generateNextNumber();
+  }
+
+  // 現在のタイルと次のタイルを入れ替え
+  bool swapNumbers() {
+    if (swapsRemaining <= 0) return false;
+
+    final temp = currentNumber;
+    currentNumber = nextNumber;
+    nextNumber = temp;
+    swapsRemaining--;
+
+    return true;
   }
 
   bool placeTile(int row, int col) {

@@ -52,12 +52,40 @@ class ScoreManager {
   // ランキングに送信（非同期・バックグラウンド処理）
   void _submitToRanking(int score) async {
     try {
+      print('[ScoreManager] Starting ranking submission for score: $score');
       final playerName = await PlayerManager().getPlayerName();
+      print('[ScoreManager] Player name: $playerName');
+
       if (playerName != null && playerName.isNotEmpty) {
+        print('[ScoreManager] Submitting to RankingManager...');
         await RankingManager().submitScore(playerName, score);
+        print('[ScoreManager] Ranking submission completed successfully');
+      } else {
+        print('[ScoreManager] Player name is null or empty, skipping ranking submission');
       }
-    } catch (e) {
+    } catch (e, stackTrace) {
       // エラーを無視（ランキング送信失敗してもゲームは続行）
+      print('[ScoreManager] Error submitting to ranking: $e');
+      print('[ScoreManager] Stack trace: $stackTrace');
+    }
+  }
+
+  // 開発用: スコアデータをリセット
+  void clearScoreData() {
+    _bestScore = 0;
+    _initialized = false;
+  }
+
+  // 全データをクリア（SharedPreferencesも含む）
+  Future<void> clearAllData() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.remove(_bestScoreKey);
+      _bestScore = 0;
+      _initialized = false;
+      print('Score data cleared from SharedPreferences');
+    } catch (e) {
+      print('Error clearing score data: $e');
     }
   }
 }

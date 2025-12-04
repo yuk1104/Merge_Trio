@@ -1,4 +1,4 @@
-package com.example.merge_trio
+package com.yuk.MergeTrio
 
 import io.flutter.embedding.android.FlutterActivity
 

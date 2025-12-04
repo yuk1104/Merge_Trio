@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
 import 'screens/game_screen.dart';
 import 'screens/name_registration_screen.dart';
@@ -10,13 +12,32 @@ import 'managers/player_manager.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
+  // 画面の向きを縦のみに固定
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+    DeviceOrientation.portraitDown,
+  ]);
+
   // Firebaseを初期化
   try {
     await Firebase.initializeApp(
       options: DefaultFirebaseOptions.currentPlatform,
     );
-  } catch (e) {
+    debugPrint('Firebase initialized successfully');
+
+    // Firebase匿名認証を初期化（少し待ってから実行）
+    await Future.delayed(const Duration(milliseconds: 500));
+
+    if (FirebaseAuth.instance.currentUser == null) {
+      debugPrint('Attempting anonymous sign in...');
+      final userCredential = await FirebaseAuth.instance.signInAnonymously();
+      debugPrint('Firebase anonymous auth initialized: ${userCredential.user?.uid}');
+    } else {
+      debugPrint('Already signed in: ${FirebaseAuth.instance.currentUser?.uid}');
+    }
+  } catch (e, stackTrace) {
     debugPrint('Firebase initialization error: $e');
+    debugPrint('Stack trace: $stackTrace');
   }
 
   // AdMobを初期化（エラーを無視）
@@ -81,10 +102,24 @@ class _InitialScreenState extends State<InitialScreen> {
   Widget build(BuildContext context) {
     if (_isChecking) {
       // ローディング画面
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(
-            color: Color(0xFFFF6B9D),
+      return Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [
+                Color(0xFF1A1A2E),
+                Color(0xFF16213E),
+                Color(0xFF0F3460),
+              ],
+            ),
+          ),
+          child: const Center(
+            child: CircularProgressIndicator(
+              color: Color(0xFFFF6B9D),
+              strokeWidth: 3,
+            ),
           ),
         ),
       );

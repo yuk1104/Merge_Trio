@@ -1,4 +1,5 @@
 import 'package:just_audio/just_audio.dart';
+import 'package:audio_session/audio_session.dart';
 
 class SoundManager {
   static final SoundManager _instance = SoundManager._internal();
@@ -36,6 +37,14 @@ class SoundManager {
     if (_initialized) return;
 
     try {
+      // AudioSessionの設定（バックグラウンド再生を有効化）
+      final session = await AudioSession.instance;
+      await session.configure(const AudioSessionConfiguration(
+        avAudioSessionCategory: AVAudioSessionCategory.playback,
+        avAudioSessionMode: AVAudioSessionMode.defaultMode,
+        avAudioSessionCategoryOptions: AVAudioSessionCategoryOptions.mixWithOthers,
+      ));
+
       // タップ音用のプレイヤーを複数作成
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
