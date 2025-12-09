@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 import '../managers/player_manager.dart';
+import '../managers/sound_manager.dart';
 import '../widgets/game_colors.dart';
-import 'game_screen.dart';
+import 'home_screen.dart';
 
 class NameRegistrationScreen extends StatefulWidget {
   const NameRegistrationScreen({super.key});
@@ -12,6 +13,7 @@ class NameRegistrationScreen extends StatefulWidget {
 
 class _NameRegistrationScreenState extends State<NameRegistrationScreen> {
   final TextEditingController _nameController = TextEditingController();
+  final SoundManager _soundManager = SoundManager();
   bool _isChecking = false;
   String? _errorMessage;
 
@@ -22,6 +24,7 @@ class _NameRegistrationScreenState extends State<NameRegistrationScreen> {
   }
 
   Future<void> _registerName() async {
+    _soundManager.playButton();
     final name = _nameController.text.trim();
 
     if (name.isEmpty) {
@@ -49,10 +52,10 @@ class _NameRegistrationScreenState extends State<NameRegistrationScreen> {
       if (!mounted) return;
 
       if (success) {
-        // 登録成功：ゲーム画面へ
+        // 登録成功：ホーム画面へ
         Navigator.of(context).pushReplacement(
           MaterialPageRoute(
-            builder: (context) => const GameScreen(),
+            builder: (context) => const HomeScreen(),
           ),
         );
       } else {

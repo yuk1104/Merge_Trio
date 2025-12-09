@@ -14,22 +14,26 @@ class SoundManager {
   static const double _mergeVolume = 0.3;
   static const double _comboVolume = 0.4;
   static const double _gameOverVolume = 0.4;
+  static const double _buttonVolume = 0.2;
 
   // フリーの効果音URL（Mixkit - https://mixkit.co/）
   static const String _tapSound = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
   static const String _mergeSound = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
   static const String _comboSound = 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3';
   static const String _gameOverSound = 'https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3';
+  static const String _buttonSound = 'https://assets.mixkit.co/active_storage/sfx/2356/2356-preview.mp3'; // ゲーム的なクリック音
 
   // 状態管理
   bool _soundEnabled = true;
   bool _initialized = false;
   int _currentTapPlayerIndex = 0;
   int _currentMergePlayerIndex = 0;
+  int _currentButtonPlayerIndex = 0;
 
   // オーディオプレイヤー
   final List<AudioPlayer> _tapPlayers = [];
   final List<AudioPlayer> _mergePlayers = [];
+  final List<AudioPlayer> _buttonPlayers = [];
   AudioPlayer? _comboPlayer;
   AudioPlayer? _gameOverPlayer;
 
@@ -59,6 +63,14 @@ class SoundManager {
         await player.setUrl(_mergeSound);
         await player.setVolume(_mergeVolume);
         _mergePlayers.add(player);
+      }
+
+      // ボタン音用のプレイヤーを複数作成
+      for (int i = 0; i < _maxSimultaneousSounds; i++) {
+        final player = AudioPlayer();
+        await player.setUrl(_buttonSound);
+        await player.setVolume(_buttonVolume);
+        _buttonPlayers.add(player);
       }
 
       // コンボとゲームオーバーは1つずつ
@@ -131,6 +143,21 @@ class SoundManager {
     }
   }
 
+  void playButton() {
+    if (!_soundEnabled || !_initialized || _buttonPlayers.isEmpty) return;
+    try {
+      // ラウンドロビン方式で次のプレイヤーを使用
+      final player = _buttonPlayers[_currentButtonPlayerIndex];
+      _currentButtonPlayerIndex = (_currentButtonPlayerIndex + 1) % _buttonPlayers.length;
+
+      // 即座に再生
+      player.seek(Duration.zero);
+      player.play();
+    } catch (e) {
+      // エラーを無視
+    }
+  }
+
   void toggleSound() {
     _soundEnabled = !_soundEnabled;
   }
@@ -142,6 +169,9 @@ class SoundManager {
       player.dispose();
     }
     for (var player in _mergePlayers) {
+      player.dispose();
+    }
+    for (var player in _buttonPlayers) {
       player.dispose();
     }
     _comboPlayer?.dispose();

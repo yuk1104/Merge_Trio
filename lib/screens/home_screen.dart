@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
 import 'game_screen.dart';
 import 'ranking_screen.dart';
+import '../managers/sound_manager.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
+
+  static final SoundManager _soundManager = SoundManager();
 
   @override
   Widget build(BuildContext context) {
@@ -58,6 +61,7 @@ class HomeScreen extends StatelessWidget {
                         colors: [Color(0xFFFF6B9D), Color(0xFFFF8FAB)],
                       ),
                       onPressed: () {
+                        _soundManager.playButton();
                         Navigator.of(context).pushReplacement(
                           MaterialPageRoute(
                             builder: (context) => const GameScreen(),
@@ -76,6 +80,7 @@ class HomeScreen extends StatelessWidget {
                         colors: [Color(0xFFC9ADFF), Color(0xFFD4B9FF)],
                       ),
                       onPressed: () {
+                        _soundManager.playButton();
                         Navigator.of(context).push(
                           MaterialPageRoute(
                             builder: (context) => const RankingScreen(),

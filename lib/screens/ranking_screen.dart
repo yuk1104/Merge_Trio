@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../managers/ranking_manager.dart';
+import '../managers/sound_manager.dart';
 import '../widgets/game_colors.dart';
 
 class RankingScreen extends StatefulWidget {
@@ -10,6 +11,7 @@ class RankingScreen extends StatefulWidget {
 }
 
 class _RankingScreenState extends State<RankingScreen> {
+  final SoundManager _soundManager = SoundManager();
   List<RankingEntry> _rankings = [];
   bool _isLoading = true;
 
@@ -65,7 +67,10 @@ class _RankingScreenState extends State<RankingScreen> {
         children: [
           IconButton(
             icon: const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-            onPressed: () => Navigator.pop(context),
+            onPressed: () {
+              _soundManager.playButton();
+              Navigator.pop(context);
+            },
           ),
           const Expanded(
             child: Text(

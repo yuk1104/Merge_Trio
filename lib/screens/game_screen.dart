@@ -236,6 +236,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             const SizedBox(height: 20),
             ElevatedButton.icon(
               onPressed: () {
+                _soundManager.playButton();
                 Navigator.pop(context); // ダイアログを閉じる
                 setState(() {
                   game = GameModel(); // 新しいゲームを作成
@@ -266,6 +267,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             const SizedBox(height: 12),
             ElevatedButton.icon(
               onPressed: () {
+                _soundManager.playButton();
                 Navigator.pop(context); // ダイアログを閉じる
                 Navigator.of(context).pushReplacement(
                   MaterialPageRoute(
@@ -291,7 +293,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ),
             const SizedBox(height: 12),
             ElevatedButton.icon(
-              onPressed: () => _confirmDeleteAccount(),
+              onPressed: () {
+                _soundManager.playButton();
+                _confirmDeleteAccount();
+              },
               icon: const Icon(Icons.delete_forever, color: Colors.white),
               label: const Text(
                 'アカウントを削除',
@@ -505,7 +510,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   color: Colors.white,
                   size: 28,
                 ),
-                onPressed: _showSettingsDialog,
+                onPressed: () {
+                  _soundManager.playButton();
+                  _showSettingsDialog();
+                },
               ),
               const Expanded(
                 child: Text(
@@ -536,6 +544,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   size: 28,
                 ),
                 onPressed: () {
+                  _soundManager.playButton();
                   Navigator.of(context).push(
                     MaterialPageRoute(
                       builder: (context) => const RankingScreen(),
