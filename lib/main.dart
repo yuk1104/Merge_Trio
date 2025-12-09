@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'firebase_options.dart';
-import 'screens/game_screen.dart';
+import 'screens/home_screen.dart';
 import 'screens/name_registration_screen.dart';
 import 'managers/ad_manager.dart';
 import 'managers/score_manager.dart';
@@ -125,9 +125,9 @@ class _InitialScreenState extends State<InitialScreen> {
       );
     }
 
-    // 登録済みならゲーム画面、未登録なら名前登録画面
+    // 登録済みならホーム画面、未登録なら名前登録画面
     return _isRegistered
-        ? const GameScreen()
+        ? const HomeScreen()
         : const NameRegistrationScreen();
   }
 }
