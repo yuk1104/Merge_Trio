@@ -8,6 +8,7 @@ import 'screens/name_registration_screen.dart';
 import 'managers/ad_manager.dart';
 import 'managers/score_manager.dart';
 import 'managers/player_manager.dart';
+import 'managers/sound_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -49,6 +50,11 @@ void main() async {
 
   // スコアマネージャーを初期化
   await ScoreManager().initialize();
+
+  // サウンドマネージャーを初期化（効果音の準備）
+  final soundManager = SoundManager();
+  // 初期化完了を待つために少し待機
+  await Future.delayed(const Duration(milliseconds: 500));
 
   runApp(const MergeTrioApp());
 }

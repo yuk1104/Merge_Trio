@@ -1,5 +1,6 @@
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
+import 'package:flutter/services.dart';
 
 class SoundManager {
   static final SoundManager _instance = SoundManager._internal();
@@ -92,6 +93,9 @@ class SoundManager {
   void playTap() {
     if (!_soundEnabled || !_initialized || _tapPlayers.isEmpty) return;
     try {
+      // 触覚フィードバック
+      HapticFeedback.lightImpact();
+
       // ラウンドロビン方式で次のプレイヤーを使用
       final player = _tapPlayers[_currentTapPlayerIndex];
       _currentTapPlayerIndex = (_currentTapPlayerIndex + 1) % _tapPlayers.length;
@@ -146,6 +150,9 @@ class SoundManager {
   void playButton() {
     if (!_soundEnabled || !_initialized || _buttonPlayers.isEmpty) return;
     try {
+      // 触覚フィードバック（ボタンは少し強め）
+      HapticFeedback.mediumImpact();
+
       // ラウンドロビン方式で次のプレイヤーを使用
       final player = _buttonPlayers[_currentButtonPlayerIndex];
       _currentButtonPlayerIndex = (_currentButtonPlayerIndex + 1) % _buttonPlayers.length;
