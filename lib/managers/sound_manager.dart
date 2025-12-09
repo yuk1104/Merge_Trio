@@ -17,12 +17,12 @@ class SoundManager {
   static const double _gameOverVolume = 0.4;
   static const double _buttonVolume = 0.2;
 
-  // フリーの効果音URL（Mixkit - https://mixkit.co/）
-  static const String _tapSound = 'https://assets.mixkit.co/active_storage/sfx/2568/2568-preview.mp3';
-  static const String _mergeSound = 'https://assets.mixkit.co/active_storage/sfx/2013/2013-preview.mp3';
-  static const String _comboSound = 'https://assets.mixkit.co/active_storage/sfx/2018/2018-preview.mp3';
-  static const String _gameOverSound = 'https://assets.mixkit.co/active_storage/sfx/2001/2001-preview.mp3';
-  static const String _buttonSound = 'https://assets.mixkit.co/active_storage/sfx/2356/2356-preview.mp3'; // ゲーム的なクリック音
+  // ローカルアセットの効果音
+  static const String _tapSound = 'assets/sounds/tap.mp3';
+  static const String _mergeSound = 'assets/sounds/merge.mp3';
+  static const String _comboSound = 'assets/sounds/combo.mp3';
+  static const String _gameOverSound = 'assets/sounds/gameover.mp3';
+  static const String _buttonSound = 'assets/sounds/button.mp3';
 
   // 状態管理
   bool _soundEnabled = true;
@@ -53,7 +53,7 @@ class SoundManager {
       // タップ音用のプレイヤーを複数作成
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
-        await player.setUrl(_tapSound);
+        await player.setAsset(_tapSound);
         await player.setVolume(_tapVolume);
         _tapPlayers.add(player);
       }
@@ -61,7 +61,7 @@ class SoundManager {
       // マージ音用のプレイヤーを複数作成
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
-        await player.setUrl(_mergeSound);
+        await player.setAsset(_mergeSound);
         await player.setVolume(_mergeVolume);
         _mergePlayers.add(player);
       }
@@ -69,7 +69,7 @@ class SoundManager {
       // ボタン音用のプレイヤーを複数作成
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
-        await player.setUrl(_buttonSound);
+        await player.setAsset(_buttonSound);
         await player.setVolume(_buttonVolume);
         _buttonPlayers.add(player);
       }
@@ -78,8 +78,8 @@ class SoundManager {
       _comboPlayer = AudioPlayer();
       _gameOverPlayer = AudioPlayer();
 
-      await _comboPlayer?.setUrl(_comboSound);
-      await _gameOverPlayer?.setUrl(_gameOverSound);
+      await _comboPlayer?.setAsset(_comboSound);
+      await _gameOverPlayer?.setAsset(_gameOverSound);
 
       await _comboPlayer?.setVolume(_comboVolume);
       await _gameOverPlayer?.setVolume(_gameOverVolume);
