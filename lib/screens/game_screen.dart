@@ -43,6 +43,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     super.initState();
     game = GameModel();
     _loadPlayerName();
+
+    // ゲーム開始音を再生
+    _soundManager.playGameStart();
+
     _tileAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,

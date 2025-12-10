@@ -16,6 +16,7 @@ class SoundManager {
   static const double _comboVolume = 0.4;
   static const double _gameOverVolume = 0.4;
   static const double _buttonVolume = 0.2;
+  static const double _gameStartVolume = 0.3;
 
   // ローカルアセットの効果音
   static const String _tapSound = 'assets/sounds/tap.mp3';
@@ -23,6 +24,7 @@ class SoundManager {
   static const String _comboSound = 'assets/sounds/combo.mp3';
   static const String _gameOverSound = 'assets/sounds/gameover.mp3';
   static const String _buttonSound = 'assets/sounds/button.mp3';
+  static const String _gameStartSound = 'assets/sounds/game_start.mp3';
 
   // 状態管理
   bool _soundEnabled = true;
@@ -37,6 +39,7 @@ class SoundManager {
   final List<AudioPlayer> _buttonPlayers = [];
   AudioPlayer? _comboPlayer;
   AudioPlayer? _gameOverPlayer;
+  AudioPlayer? _gameStartPlayer;
 
   Future<void> _initializePlayers() async {
     if (_initialized) return;
@@ -77,12 +80,15 @@ class SoundManager {
       // コンボとゲームオーバーは1つずつ
       _comboPlayer = AudioPlayer();
       _gameOverPlayer = AudioPlayer();
+      _gameStartPlayer = AudioPlayer();
 
       await _comboPlayer?.setAsset(_comboSound);
       await _gameOverPlayer?.setAsset(_gameOverSound);
+      await _gameStartPlayer?.setAsset(_gameStartSound);
 
       await _comboPlayer?.setVolume(_comboVolume);
       await _gameOverPlayer?.setVolume(_gameOverVolume);
+      await _gameStartPlayer?.setVolume(_gameStartVolume);
 
       _initialized = true;
     } catch (e) {
@@ -147,6 +153,18 @@ class SoundManager {
     }
   }
 
+  Future<void> playGameStart() async {
+    if (!_soundEnabled || !_initialized || _gameStartPlayer == null) return;
+    try {
+      // 再生中なら即座に停止してリセット
+      await _gameStartPlayer!.stop();
+      await _gameStartPlayer!.seek(Duration.zero);
+      await _gameStartPlayer!.play();
+    } catch (e) {
+      // エラーを無視
+    }
+  }
+
   void playButton() {
     if (!_soundEnabled || !_initialized || _buttonPlayers.isEmpty) return;
     try {
@@ -183,5 +201,6 @@ class SoundManager {
     }
     _comboPlayer?.dispose();
     _gameOverPlayer?.dispose();
+    _gameStartPlayer?.dispose();
   }
 }
