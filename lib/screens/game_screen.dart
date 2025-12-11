@@ -242,15 +242,20 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               onPressed: () {
                 _soundManager.playButton();
                 Navigator.pop(context); // ダイアログを閉じる
-                setState(() {
-                  game = GameModel(); // 新しいゲームを作成
-                  lastMergedRow = null;
-                  lastMergedCol = null;
-                  lastAddedScore = 0;
-                  showScorePopup = false;
-                  showCombo = false;
-                  particles.clear();
-                });
+                // 広告を表示してからゲームをリスタート
+                AdManager().showInterstitialAd(
+                  onAdClosed: () {
+                    setState(() {
+                      game = GameModel(); // 新しいゲームを作成
+                      lastMergedRow = null;
+                      lastMergedCol = null;
+                      lastAddedScore = 0;
+                      showScorePopup = false;
+                      showCombo = false;
+                      particles.clear();
+                    });
+                  },
+                );
               },
               icon: const Icon(Icons.replay, color: Colors.white),
               label: const Text(

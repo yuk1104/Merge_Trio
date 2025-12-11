@@ -1,6 +1,7 @@
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'score_manager.dart';
 
 class PlayerManager {
@@ -67,10 +68,15 @@ class PlayerManager {
         return false;
       }
 
-      // Firestoreに登録
+      // 現在のユーザーIDを取得
+      final auth = FirebaseAuth.instance;
+      final userId = auth.currentUser?.uid;
+
+      // Firestoreに登録（userIdも保存）
       print('Adding to Firestore...');
       await _firestore.collection('players').add({
         'name': name,
+        'userId': userId,
         'createdAt': FieldValue.serverTimestamp(),
       });
       print('Added to Firestore successfully');
@@ -116,23 +122,59 @@ class PlayerManager {
         print('Stack trace: $stackTrace');
       }
 
-      // 2. Firestoreのplayersから削除（名前で検索）
-      final playerName = await getPlayerName();
-      if (playerName != null && playerName.isNotEmpty) {
-        try {
-          final querySnapshot = await _firestore
-              .collection('players')
-              .where('name', isEqualTo: playerName)
-              .limit(1)
-              .get();
+      // 2. Firestoreのplayersから削除（userIdで検索、見つからなければ名前でも検索）
+      try {
+        print('Attempting to delete from players collection...');
+        int deletedCount = 0;
 
+        // まずuserIdで検索（新しいデータ）
+        var querySnapshot = await _firestore
+            .collection('players')
+            .where('userId', isEqualTo: userId)
+            .get();
+
+        if (querySnapshot.docs.isNotEmpty) {
+          print('Found ${querySnapshot.docs.length} documents with userId');
           for (var doc in querySnapshot.docs) {
             await doc.reference.delete();
-            print('Deleted from players: ${doc.id}');
+            deletedCount++;
+            print('Deleted from players (by userId): ${doc.id}');
           }
-        } catch (e) {
-          print('Error deleting from players: $e');
         }
+
+        // 名前でも検索（既存の古いデータ + 念のため）
+        final playerName = await getPlayerName();
+        if (playerName != null && playerName.isNotEmpty) {
+          print('Also searching by name: $playerName');
+          final nameQuerySnapshot = await _firestore
+              .collection('players')
+              .where('name', isEqualTo: playerName)
+              .get();
+
+          print('Found ${nameQuerySnapshot.docs.length} documents with name');
+          for (var doc in nameQuerySnapshot.docs) {
+            // userIdで既に削除済みでないか確認
+            final docData = doc.data();
+            final docUserId = docData['userId'];
+            if (docUserId != userId) {
+              // 別のuserIdか、userIdがないドキュメント（古いデータ）を削除
+              await doc.reference.delete();
+              deletedCount++;
+              print('Deleted from players (by name): ${doc.id}');
+            } else {
+              print('Skipped ${doc.id} (already deleted by userId)');
+            }
+          }
+        }
+
+        if (deletedCount == 0) {
+          print('Warning: No player documents found to delete');
+        } else {
+          print('Total deleted from players: $deletedCount documents');
+        }
+      } catch (e, stackTrace) {
+        print('Error deleting from players: $e');
+        print('Stack trace: $stackTrace');
       }
 
       // 3. ローカルデータを削除
@@ -141,7 +183,16 @@ class PlayerManager {
       _playerName = null;
       print('Cleared local data');
 
-      // 4. Firebase匿名アカウントを削除
+      // 4. Secure Storageから保存されているUIDを削除
+      try {
+        const storage = FlutterSecureStorage();
+        await storage.delete(key: 'firebase_uid');
+        print('Deleted UID from secure storage');
+      } catch (e) {
+        print('Error deleting from secure storage: $e');
+      }
+
+      // 5. Firebase匿名アカウントを削除
       try {
         await auth.currentUser?.delete();
         print('Deleted Firebase auth user');
@@ -149,7 +200,7 @@ class PlayerManager {
         print('Error deleting auth user: $e');
       }
 
-      // 5. ScoreManagerもリセット
+      // 6. ScoreManagerもリセット
       await ScoreManager().clearAllData();
       print('Cleared score data');
 

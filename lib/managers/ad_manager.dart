@@ -1,5 +1,6 @@
 import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:flutter/foundation.dart' show kIsWeb, debugPrint;
+import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:io' show Platform;
 
 class AdManager {
@@ -11,6 +12,11 @@ class AdManager {
   bool _isAdLoaded = false;
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
+
+  // 広告表示カウンター（3回に1回表示）
+  static const String _restartCountKey = 'restart_count';
+  static const int _adFrequency = 3; // 3回に1回表示
+  int _restartCount = 0;
 
   // アプリID: ca-app-pub-3971807513032614~6098994742
   // プラットフォーム別の広告ユニットID
@@ -94,12 +100,38 @@ class AdManager {
     if (kIsWeb) return;
 
     try {
+      // カウンターを読み込み
+      await _loadRestartCount();
+
       await MobileAds.instance.initialize();
       debugPrint('AdMob initialized successfully');
       _loadInterstitialAd();
       _loadBannerAd();
     } catch (e) {
       debugPrint('AdMob initialization error: $e');
+    }
+  }
+
+  // リスタートカウンターを読み込み
+  Future<void> _loadRestartCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _restartCount = prefs.getInt(_restartCountKey) ?? 0;
+      debugPrint('Loaded restart count: $_restartCount');
+    } catch (e) {
+      debugPrint('Failed to load restart count: $e');
+      _restartCount = 0;
+    }
+  }
+
+  // リスタートカウンターを保存
+  Future<void> _saveRestartCount() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setInt(_restartCountKey, _restartCount);
+      debugPrint('Saved restart count: $_restartCount');
+    } catch (e) {
+      debugPrint('Failed to save restart count: $e');
     }
   }
 
@@ -189,7 +221,15 @@ class AdManager {
       return;
     }
 
-    if (_isAdLoaded && _interstitialAd != null) {
+    // カウンターをインクリメント
+    _restartCount++;
+    await _saveRestartCount();
+
+    // 3回に1回だけ広告を表示
+    final shouldShowAd = _restartCount % _adFrequency == 0;
+    debugPrint('Restart count: $_restartCount, Should show ad: $shouldShowAd');
+
+    if (shouldShowAd && _isAdLoaded && _interstitialAd != null) {
       debugPrint('Showing interstitial ad');
       _interstitialAd!.fullScreenContentCallback = FullScreenContentCallback(
         onAdDismissedFullScreenContent: (ad) {
@@ -210,8 +250,12 @@ class AdManager {
 
       await _interstitialAd!.show();
     } else {
-      debugPrint('Interstitial ad not ready, skipping');
-      // 広告が読み込まれていない場合はすぐにコールバックを実行
+      if (!shouldShowAd) {
+        debugPrint('Skipping ad (not every 3rd restart)');
+      } else {
+        debugPrint('Interstitial ad not ready, skipping');
+      }
+      // 広告を表示しない場合はすぐにコールバックを実行
       onAdClosed();
     }
   }
