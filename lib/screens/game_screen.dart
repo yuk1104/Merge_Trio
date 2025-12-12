@@ -238,87 +238,114 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
             ),
             const SizedBox(height: 20),
-            ElevatedButton.icon(
-              onPressed: () {
-                _soundManager.playButton();
-                Navigator.pop(context); // ダイアログを閉じる
-                // 広告を表示してからゲームをリスタート
-                AdManager().showInterstitialAd(
-                  onAdClosed: () {
-                    setState(() {
-                      game = GameModel(); // 新しいゲームを作成
-                      lastMergedRow = null;
-                      lastMergedCol = null;
-                      lastAddedScore = 0;
-                      showScorePopup = false;
-                      showCombo = false;
-                      particles.clear();
-                    });
-                  },
-                );
-              },
-              icon: const Icon(Icons.replay, color: Colors.white),
-              label: const Text(
-                'リプレイ',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFF66BB6A),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-            ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                _soundManager.playButton();
-                Navigator.pop(context); // ダイアログを閉じる
-                Navigator.of(context).pushReplacement(
-                  MaterialPageRoute(
-                    builder: (context) => const HomeScreen(),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _soundManager.playButton();
+                  Navigator.pop(context); // ダイアログを閉じる
+                  // 広告を表示してからゲームをリスタート
+                  AdManager().showInterstitialAd(
+                    onAdClosed: () {
+                      setState(() {
+                        game = GameModel(); // 新しいゲームを作成
+                        lastMergedRow = null;
+                        lastMergedCol = null;
+                        lastAddedScore = 0;
+                        showScorePopup = false;
+                        showCombo = false;
+                        particles.clear();
+                      });
+                    },
+                  );
+                },
+                icon: const Icon(Icons.replay, color: Colors.white, size: 20),
+                label: const Text(
+                  'リプレイ',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
                   ),
-                );
-              },
-              icon: const Icon(Icons.home, color: Colors.white),
-              label: const Text(
-                'ホームに戻る',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
                 ),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: const Color(0xFFC9ADFF),
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  elevation: 0,
                 ),
               ),
             ),
-            const SizedBox(height: 12),
-            ElevatedButton.icon(
-              onPressed: () {
-                _soundManager.playButton();
-                _confirmDeleteAccount();
-              },
-              icon: const Icon(Icons.delete_forever, color: Colors.white),
-              label: const Text(
-                'アカウントを削除',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _soundManager.playButton();
+                  Navigator.pop(context); // ダイアログを閉じる
+                  Navigator.of(context).pushReplacement(
+                    MaterialPageRoute(
+                      builder: (context) => const HomeScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.home, color: Colors.white, size: 20),
+                label: const Text(
+                  'ホームに戻る',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  elevation: 0,
                 ),
               ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.red.shade700,
-                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _soundManager.playButton();
+                  _confirmDeleteAccount();
+                },
+                icon: const Icon(Icons.delete_forever, color: Colors.white70, size: 20),
+                label: const Text(
+                  'アカウントを削除',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.08),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Colors.red.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  elevation: 0,
                 ),
               ),
             ),
