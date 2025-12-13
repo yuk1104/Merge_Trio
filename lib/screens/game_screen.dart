@@ -8,6 +8,7 @@ import '../managers/sound_manager.dart';
 import '../managers/ad_manager.dart';
 import '../managers/score_manager.dart';
 import '../managers/player_manager.dart';
+import '../managers/skin_manager.dart';
 import '../screens/ranking_screen.dart';
 import '../screens/home_screen.dart';
 import '../widgets/game_colors.dart';
@@ -47,6 +48,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     // ゲーム開始音を再生
     _soundManager.playGameStart();
 
+    // プレイ回数をカウント
+    SkinManager().incrementPlayCount();
+
+    // SkinManagerの変更をリッスン
+    SkinManager().addListener(_onSkinChanged);
+
     _tileAnimationController = AnimationController(
       duration: const Duration(milliseconds: 300),
       vsync: this,
@@ -71,8 +78,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     });
   }
 
+  void _onSkinChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
+
   @override
   void dispose() {
+    SkinManager().removeListener(_onSkinChanged);
     _tileAnimationController.dispose();
     _scorePopupController.dispose();
     _comboController.dispose();
@@ -812,7 +826,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Widget _buildNextTile(int number, String label, {required bool isLarge}) {
     final size = isLarge ? 65.0 : 55.0;
-    final gradient = GameColors.getTileGradient(number);
+    final skinManager = SkinManager();
+    final gradient = skinManager.getTileGradient(number, skinManager.currentSkin);
 
     return Column(
       mainAxisSize: MainAxisSize.min,
@@ -841,7 +856,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               style: TextStyle(
                 fontSize: size * 0.45,
                 fontWeight: FontWeight.w900,
-                color: GameColors.getTileTextColor(number),
+                color: skinManager.getTileTextColor(number, skinManager.currentSkin),
               ),
             ),
           ),

@@ -12,6 +12,8 @@ class AdManager {
   bool _isAdLoaded = false;
   BannerAd? _bannerAd;
   bool _isBannerAdLoaded = false;
+  RewardedAd? _rewardedAd;
+  bool _isRewardedAdLoaded = false;
 
   // 広告表示カウンター（3回に1回表示）
   static const String _restartCountKey = 'restart_count';
@@ -21,8 +23,8 @@ class AdManager {
   // アプリID: ca-app-pub-3971807513032614~6098994742
   // プラットフォーム別の広告ユニットID
 
-  // デバッグモード設定
-  static const bool _useTestAds = false; // テスト広告を使う場合はtrueに変更
+  // デバッグモード設定（本番環境）
+  static const bool _useTestAds = false; // 本番環境では必ずfalse
 
   // インタースティシャル広告ユニットID
   static String get _interstitialAdUnitId {
@@ -92,8 +94,33 @@ class AdManager {
     return 'ca-app-pub-3971807513032614/2476154940'; // デフォルト（Android本番用）
   }
 
+  // リワード広告ユニットID
+  static String get _rewardedAdUnitId {
+    if (kIsWeb) {
+      return ''; // Web環境では使用しない
+    }
+
+    // テスト広告を使用する場合
+    if (_useTestAds) {
+      try {
+        if (Platform.isAndroid) {
+          return 'ca-app-pub-3940256099942544/5224354917'; // テスト用Android
+        } else if (Platform.isIOS) {
+          return 'ca-app-pub-3940256099942544/1712485313'; // テスト用iOS
+        }
+      } catch (e) {
+        // Platform情報が取得できない場合
+      }
+      return 'ca-app-pub-3940256099942544/5224354917'; // デフォルト
+    }
+
+    // 本番広告を使用する場合（あなたのリワード広告ID）
+    return 'ca-app-pub-3971807513032614/1697780305';
+  }
+
   BannerAd? get bannerAd => _bannerAd;
   bool get isBannerAdLoaded => _isBannerAdLoaded;
+  bool get isRewardedAdLoaded => _isRewardedAdLoaded;
 
   Future<void> initialize() async {
     // Web環境では広告を無効化
@@ -107,6 +134,7 @@ class AdManager {
       debugPrint('AdMob initialized successfully');
       _loadInterstitialAd();
       _loadBannerAd();
+      _loadRewardedAd();
     } catch (e) {
       debugPrint('AdMob initialization error: $e');
     }
@@ -260,8 +288,98 @@ class AdManager {
     }
   }
 
+  // リワード広告を読み込み
+  void _loadRewardedAd() {
+    // Web環境では広告を読み込まない
+    if (kIsWeb) return;
+
+    try {
+      debugPrint('Loading rewarded ad with ID: $_rewardedAdUnitId');
+      RewardedAd.load(
+        adUnitId: _rewardedAdUnitId,
+        request: const AdRequest(),
+        rewardedAdLoadCallback: RewardedAdLoadCallback(
+          onAdLoaded: (ad) {
+            debugPrint('Rewarded ad loaded successfully');
+            _rewardedAd = ad;
+            _isRewardedAdLoaded = true;
+
+            ad.fullScreenContentCallback = FullScreenContentCallback(
+              onAdDismissedFullScreenContent: (ad) {
+                debugPrint('Rewarded ad dismissed');
+                ad.dispose();
+                _isRewardedAdLoaded = false;
+                _loadRewardedAd(); // 次の広告をプリロード
+              },
+              onAdFailedToShowFullScreenContent: (ad, error) {
+                debugPrint('Rewarded ad failed to show: ${error.message}');
+                ad.dispose();
+                _isRewardedAdLoaded = false;
+                _loadRewardedAd();
+              },
+            );
+          },
+          onAdFailedToLoad: (error) {
+            debugPrint('Rewarded ad failed to load: ${error.message}');
+            _isRewardedAdLoaded = false;
+            // 失敗したら少し待ってから再読み込み
+            Future.delayed(const Duration(seconds: 5), () {
+              _loadRewardedAd();
+            });
+          },
+        ),
+      );
+    } catch (e) {
+      debugPrint('Rewarded ad loading exception: $e');
+      _isRewardedAdLoaded = false;
+    }
+  }
+
+  // リワード広告を表示
+  Future<void> showRewardedAd({required Function(bool) onComplete}) async {
+    // Web環境では広告をスキップ
+    if (kIsWeb) {
+      onComplete(false);
+      return;
+    }
+
+    if (_isRewardedAdLoaded && _rewardedAd != null) {
+      debugPrint('Showing rewarded ad');
+      bool rewarded = false;
+
+      _rewardedAd!.show(
+        onUserEarnedReward: (ad, reward) {
+          debugPrint('User earned reward: ${reward.amount} ${reward.type}');
+          rewarded = true;
+        },
+      );
+
+      // 広告が閉じられるまで待つ
+      _rewardedAd!.fullScreenContentCallback = FullScreenContentCallback(
+        onAdDismissedFullScreenContent: (ad) {
+          debugPrint('Rewarded ad dismissed, rewarded: $rewarded');
+          ad.dispose();
+          _isRewardedAdLoaded = false;
+          _loadRewardedAd();
+          onComplete(rewarded);
+        },
+        onAdFailedToShowFullScreenContent: (ad, error) {
+          debugPrint('Rewarded ad failed to show: ${error.message}');
+          ad.dispose();
+          _isRewardedAdLoaded = false;
+          _loadRewardedAd();
+          onComplete(false);
+        },
+      );
+    } else {
+      debugPrint('Rewarded ad not ready');
+      onComplete(false);
+    }
+  }
+
   void dispose() {
     _interstitialAd?.dispose();
     _bannerAd?.dispose();
+    _rewardedAd?.dispose();
   }
 }

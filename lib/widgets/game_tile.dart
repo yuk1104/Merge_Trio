@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'game_colors.dart';
+import '../managers/skin_manager.dart';
 
 class GameTile extends StatelessWidget {
   final int number;
@@ -17,6 +18,9 @@ class GameTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final skinManager = SkinManager();
+    final currentSkin = skinManager.currentSkin;
+
     return GestureDetector(
       onTap: onTap,
       child: AnimatedBuilder(
@@ -25,6 +29,8 @@ class GameTile extends StatelessWidget {
           final scale = isAnimating
               ? 1.0 + (animationController.value * 0.15 * (1 - animationController.value) * 4)
               : 1.0;
+
+          final tileColors = skinManager.getTileGradient(number, currentSkin);
 
           return Transform.scale(
             scale: scale,
@@ -35,7 +41,7 @@ class GameTile extends StatelessWidget {
                     : LinearGradient(
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
-                        colors: GameColors.getTileGradient(number),
+                        colors: tileColors,
                       ),
                 color: number == 0 ? Colors.white.withValues(alpha: 0.05) : null,
                 borderRadius: BorderRadius.circular(16),
@@ -67,7 +73,7 @@ class GameTile extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 36,
                           fontWeight: FontWeight.w900,
-                          color: GameColors.getTileTextColor(number),
+                          color: skinManager.getTileTextColor(number, currentSkin),
                           shadows: const [
                             Shadow(
                               color: Colors.black26,

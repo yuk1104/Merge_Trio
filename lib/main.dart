@@ -11,6 +11,7 @@ import 'managers/ad_manager.dart';
 import 'managers/score_manager.dart';
 import 'managers/player_manager.dart';
 import 'managers/sound_manager.dart';
+import 'managers/skin_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -44,6 +45,9 @@ void main() async {
 
   // スコアマネージャーを初期化
   await ScoreManager().initialize();
+
+  // スキンマネージャーを初期化
+  await SkinManager().initialize();
 
   // サウンドマネージャーを初期化（効果音の準備）
   final soundManager = SoundManager();

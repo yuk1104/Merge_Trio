@@ -1,11 +1,19 @@
 import 'package:flutter/material.dart';
 import 'game_screen.dart';
 import 'ranking_screen.dart';
+import 'unlock_pastel_dialog.dart';
 import '../managers/sound_manager.dart';
+import '../managers/skin_manager.dart';
+import '../widgets/game_colors.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
   static final SoundManager _soundManager = SoundManager();
 
   @override
@@ -88,6 +96,21 @@ class HomeScreen extends StatelessWidget {
                         );
                       },
                     ),
+                    const SizedBox(height: 20),
+
+                    // スキン変更ボタン
+                    _buildMenuButton(
+                      context: context,
+                      label: 'スキン変更',
+                      icon: Icons.palette_rounded,
+                      gradient: const LinearGradient(
+                        colors: [Color(0xFF4FC3F7), Color(0xFF6DD5FA)],
+                      ),
+                      onPressed: () {
+                        _soundManager.playButton();
+                        _showSkinDialog();
+                      },
+                    ),
                   ],
                 ),
               ),
@@ -95,6 +118,177 @@ class HomeScreen extends StatelessWidget {
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  void _showSkinDialog() {
+    final skinManager = SkinManager();
+    final currentSkin = skinManager.currentSkin;
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A2E),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+          side: BorderSide(
+            color: GameColors.accentPink.withValues(alpha: 0.3),
+            width: 2,
+          ),
+        ),
+        title: const Text(
+          'タイルスキン',
+          style: TextStyle(
+            color: Colors.white,
+            fontWeight: FontWeight.bold,
+            fontSize: 24,
+          ),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Text(
+                'お好みのスキンを選択してください',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 20),
+              ...TileSkin.values.map((skin) {
+                final isSelected = skin == currentSkin;
+                final isLocked = skin == TileSkin.pastel && !skinManager.isPastelUnlocked;
+
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: InkWell(
+                    onTap: () async {
+                      _soundManager.playButton();
+
+                      // パステルがロックされている場合はアンロックダイアログを表示
+                      if (isLocked) {
+                        Navigator.pop(context); // スキン選択ダイアログを閉じる
+                        showDialog(
+                          context: context,
+                          builder: (context) => const UnlockPastelDialog(),
+                        );
+                        return;
+                      }
+
+                      await skinManager.setSkin(skin);
+                      if (context.mounted) {
+                        Navigator.pop(context);
+                        // ホーム画面を更新
+                        setState(() {});
+                      }
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(16),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: isSelected ? 0.15 : 0.05),
+                        borderRadius: BorderRadius.circular(12),
+                        border: Border.all(
+                          color: isSelected
+                              ? GameColors.accentPink
+                              : Colors.white.withValues(alpha: 0.2),
+                          width: isSelected ? 2 : 1,
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Text(
+                                      skinManager.getSkinName(skin),
+                                      style: TextStyle(
+                                        color: isSelected
+                                            ? GameColors.accentPink
+                                            : isLocked
+                                                ? Colors.white60
+                                                : Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 16,
+                                      ),
+                                    ),
+                                    if (isLocked) ...[
+                                      const SizedBox(width: 8),
+                                      const Icon(
+                                        Icons.lock,
+                                        color: Colors.orange,
+                                        size: 18,
+                                      ),
+                                    ],
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Row(
+                                  children: [1, 2, 3].map((number) {
+                                    final colors = skinManager.getTileGradient(number, skin);
+                                    return Container(
+                                      width: 40,
+                                      height: 40,
+                                      margin: const EdgeInsets.only(right: 8),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: colors,
+                                          begin: Alignment.topLeft,
+                                          end: Alignment.bottomRight,
+                                        ),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Center(
+                                        child: Text(
+                                          '$number',
+                                          style: TextStyle(
+                                            color: skinManager.getTileTextColor(number, skin),
+                                            fontWeight: FontWeight.bold,
+                                            fontSize: 14,
+                                          ),
+                                        ),
+                                      ),
+                                    );
+                                  }).toList(),
+                                ),
+                              ],
+                            ),
+                          ),
+                          if (isSelected)
+                            const Icon(
+                              Icons.check_circle,
+                              color: GameColors.accentPink,
+                              size: 28,
+                            ),
+                        ],
+                      ),
+                    ),
+                  ),
+                );
+              }),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _soundManager.playButton();
+              Navigator.pop(context);
+            },
+            child: const Text(
+              '閉じる',
+              style: TextStyle(
+                color: GameColors.accentPink,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
