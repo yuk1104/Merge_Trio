@@ -303,10 +303,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 onPressed: () {
                   _soundManager.playButton();
                   Navigator.pop(context); // ダイアログを閉じる
-                  Navigator.of(context).pushReplacement(
-                    MaterialPageRoute(
-                      builder: (context) => const HomeScreen(),
-                    ),
+                  // 広告を表示してからホームに戻る
+                  AdManager().showInterstitialAd(
+                    onAdClosed: () {
+                      Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(
+                          builder: (context) => const HomeScreen(),
+                        ),
+                      );
+                    },
                   );
                 },
                 icon: const Icon(Icons.home, color: Colors.white, size: 20),

@@ -24,7 +24,7 @@ class AdManager {
   // プラットフォーム別の広告ユニットID
 
   // デバッグモード設定（本番環境）
-  static const bool _useTestAds = false; // 本番環境では必ずfalse
+  static const bool _useTestAds = false; // 本番環境ではfalse
 
   // インタースティシャル広告ユニットID
   static String get _interstitialAdUnitId {
