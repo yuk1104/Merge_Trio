@@ -114,8 +114,18 @@ class AdManager {
       return 'ca-app-pub-3940256099942544/5224354917'; // デフォルト
     }
 
-    // 本番広告を使用する場合（あなたのリワード広告ID）
-    return 'ca-app-pub-3971807513032614/1697780305';
+    // 本番広告を使用する場合
+    try {
+      if (Platform.isAndroid) {
+        return 'ca-app-pub-3971807513032614/4576113138'; // Android本番用
+      } else if (Platform.isIOS) {
+        return 'ca-app-pub-3971807513032614/4576113138'; // iOS本番用
+      }
+    } catch (e) {
+      // Platform情報が取得できない場合
+    }
+
+    return 'ca-app-pub-3971807513032614/4576113138'; // デフォルト（本番用）
   }
 
   BannerAd? get bannerAd => _bannerAd;
