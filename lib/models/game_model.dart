@@ -264,7 +264,21 @@ class GameModel {
     for (final pos in group) {
       if (pos.row == tapRow && pos.col == tapCol) {
         board[pos.row][pos.col] = number + 1;
-        score += number + 1;
+
+        // 基本スコア
+        int baseScore = number + 1;
+
+        // コンボボーナス
+        // 1コンボ（comboCount=0）: ボーナスなし
+        // 2コンボ（comboCount=1）: 2倍
+        // 3コンボ（comboCount=2）: 3倍
+        // 4コンボ以上: 4倍
+        int comboMultiplier = 1;
+        if (comboCount >= 1) {
+          comboMultiplier = (comboCount + 1).clamp(1, 4);
+        }
+
+        score += baseScore * comboMultiplier;
       } else {
         board[pos.row][pos.col] = 0;
       }
