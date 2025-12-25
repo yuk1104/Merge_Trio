@@ -61,7 +61,8 @@ class GameTile extends StatelessWidget {
                 boxShadow: number != 0
                     ? [
                         BoxShadow(
-                          color: GameColors.getTileGlowColor(number).withValues(
+                          color: (isGlowing ? Colors.white : GameColors.getTileGlowColor(number))
+                              .withValues(
                             alpha: 0.6 + (glowIntensity * 0.4),
                           ),
                           blurRadius: 15 + (glowIntensity * 20),

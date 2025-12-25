@@ -41,6 +41,182 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   String _playerName = '';
   Set<String> _glowingTiles = {}; // 光っているタイル "row,col"
 
+  // スコアに応じた色を取得
+  Color _getScoreColor(int score) {
+    if (score >= 300) {
+      return const Color(0xFFFFC738); // ゴールデンイエロー
+    } else if (score >= 200) {
+      return const Color(0xFF9D4EDD); // ビビッドパープル
+    } else if (score >= 100) {
+      return const Color(0xFFFF6B9D); // コーラルピンク
+    } else {
+      return Colors.white; // デフォルト（白）
+    }
+  }
+
+  // スコアに応じたグラデーションシャドウを取得
+  List<Shadow> _getScoreShadows(int score) {
+    if (score >= 300) {
+      // ゴールデングロー（暖かい金色）
+      return [
+        const Shadow(
+          color: Color(0xFFFFC738),
+          blurRadius: 20,
+        ),
+        const Shadow(
+          color: Color(0xFFFFAA00),
+          blurRadius: 12,
+        ),
+        const Shadow(
+          color: Color(0xFFFF8800),
+          blurRadius: 6,
+        ),
+      ];
+    } else if (score >= 200) {
+      // パープルグロー（神秘的）
+      return [
+        const Shadow(
+          color: Color(0xFF9D4EDD),
+          blurRadius: 20,
+        ),
+        const Shadow(
+          color: Color(0xFFC77DFF),
+          blurRadius: 12,
+        ),
+        const Shadow(
+          color: Color(0xFFE0AAFF),
+          blurRadius: 6,
+        ),
+      ];
+    } else if (score >= 100) {
+      // コーラルピンクグロー（柔らかく華やか）
+      return [
+        const Shadow(
+          color: Color(0xFFFF6B9D),
+          blurRadius: 20,
+        ),
+        const Shadow(
+          color: Color(0xFFFF8FAB),
+          blurRadius: 12,
+        ),
+        const Shadow(
+          color: Color(0xFFFFB3C6),
+          blurRadius: 6,
+        ),
+      ];
+    } else {
+      // デフォルト（ピンクのグロー）
+      return [
+        const Shadow(
+          color: GameColors.accentPink,
+          blurRadius: 10,
+        ),
+      ];
+    }
+  }
+
+  // スコアに応じた枠のグラデーション背景を取得
+  Gradient? _getScoreBoxGradient(int score) {
+    if (score >= 300) {
+      // 金色のグラデーション
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFFFD700),
+          Color(0xFFFFA500),
+          Color(0xFFFF8C00),
+        ],
+      );
+    } else if (score >= 200) {
+      // 銀色のグラデーション
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFF5F5F5),
+          Color(0xFFC0C0C0),
+          Color(0xFFA8A8A8),
+        ],
+      );
+    } else if (score >= 100) {
+      // 赤色のグラデーション
+      return const LinearGradient(
+        begin: Alignment.topLeft,
+        end: Alignment.bottomRight,
+        colors: [
+          Color(0xFFFF6B6B),
+          Color(0xFFFF5252),
+          Color(0xFFFF1744),
+        ],
+      );
+    }
+    return null; // デフォルトは単色
+  }
+
+  // スコアに応じた枠線の色を取得
+  Color _getScoreBorderColor(int score) {
+    if (score >= 300) {
+      return const Color(0xFFFFD700); // 金色
+    } else if (score >= 200) {
+      return const Color(0xFFF0F0F0); // 銀色
+    } else if (score >= 100) {
+      return const Color(0xFFFF5252); // 赤色
+    } else {
+      return Colors.white.withValues(alpha: 0.2); // デフォルト
+    }
+  }
+
+  // スコアに応じたボックスシャドウを取得
+  List<BoxShadow> _getScoreBoxShadow(int score) {
+    if (score >= 300) {
+      // 金色の強い光
+      return [
+        BoxShadow(
+          color: const Color(0xFFFFD700).withValues(alpha: 0.6),
+          blurRadius: 20,
+          spreadRadius: 5,
+        ),
+        BoxShadow(
+          color: const Color(0xFFFFA500).withValues(alpha: 0.4),
+          blurRadius: 30,
+          spreadRadius: 2,
+        ),
+      ];
+    } else if (score >= 200) {
+      // 銀色の光
+      return [
+        BoxShadow(
+          color: const Color(0xFFC0C0C0).withValues(alpha: 0.6),
+          blurRadius: 20,
+          spreadRadius: 4,
+        ),
+        BoxShadow(
+          color: const Color(0xFFE8E8E8).withValues(alpha: 0.3),
+          blurRadius: 25,
+          spreadRadius: 2,
+        ),
+      ];
+    } else if (score >= 100) {
+      // 赤色の光
+      return [
+        BoxShadow(
+          color: Colors.red.withValues(alpha: 0.5),
+          blurRadius: 20,
+          spreadRadius: 3,
+        ),
+        BoxShadow(
+          color: Colors.redAccent.withValues(alpha: 0.3),
+          blurRadius: 25,
+          spreadRadius: 1,
+        ),
+      ];
+    } else {
+      // デフォルト（軽い影のみ）
+      return [];
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -173,11 +349,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     lastAddedScore = game.score - scoreBefore;
 
     if (lastAddedScore > 0) {
-      final gradient = GameColors.getTileGradient(game.board[row][col]);
       _createParticles(
         (col + 0.5) * 80.0,
         (row + 0.5) * 80.0,
-        gradient.first,
+        GameColors.getTileGlowColor(game.board[row][col]),
       );
       _soundManager.playMerge(game.board[row][col]);
     }
@@ -668,68 +843,63 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ),
       ),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          // 現在のスコア
-          Column(
-            children: [
-              const Text(
-                'SCORE',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white60,
-                  letterSpacing: 2,
+          mainAxisAlignment: MainAxisAlignment.spaceAround,
+          children: [
+            // 現在のスコア
+            Column(
+              children: [
+                const Text(
+                  'SCORE',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white60,
+                    letterSpacing: 2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${game.score}',
-                style: const TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white,
-                  shadows: [
-                    Shadow(
-                      color: GameColors.accentPink,
-                      blurRadius: 10,
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  '${game.score}',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: _getScoreColor(game.score),
+                    shadows: _getScoreShadows(game.score),
+                  ),
                 ),
-              ),
-            ],
-          ),
-          // ベストスコア
-          Column(
-            children: [
-              const Text(
-                'BEST',
-                style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white60,
-                  letterSpacing: 2,
+              ],
+            ),
+            // ベストスコア
+            Column(
+              children: [
+                const Text(
+                  'BEST',
+                  style: TextStyle(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Colors.white60,
+                    letterSpacing: 2,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '${ScoreManager().bestScore}',
-                style: TextStyle(
-                  fontSize: 36,
-                  fontWeight: FontWeight.w900,
-                  color: Colors.white.withValues(alpha: 0.8),
-                  shadows: const [
-                    Shadow(
-                      color: GameColors.accentPinkLight,
-                      blurRadius: 10,
-                    ),
-                  ],
+                const SizedBox(height: 4),
+                Text(
+                  '${ScoreManager().bestScore}',
+                  style: TextStyle(
+                    fontSize: 36,
+                    fontWeight: FontWeight.w900,
+                    color: Colors.white.withValues(alpha: 0.8),
+                    shadows: const [
+                      Shadow(
+                        color: GameColors.accentPinkLight,
+                        blurRadius: 10,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
-          ),
-        ],
-      ),
+              ],
+            ),
+          ],
+        ),
     );
   }
 
