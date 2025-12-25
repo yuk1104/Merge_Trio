@@ -12,6 +12,8 @@ class GameModel {
   int? lastPlacedCol;
   final Random _random = Random();
   int swapsRemaining = 3; // 入れ替え可能な残り回数
+  List<Position> pendingMergePositions = []; // マージ予定のタイルの位置
+  int pendingMergeNumber = 0; // マージ予定のタイルの数字
 
   GameModel({this.boardSize = 4}) {
     reset();
@@ -57,6 +59,111 @@ class GameModel {
     swapsRemaining--;
 
     return true;
+  }
+
+  // タイル配置後にマージが発生するかチェック（演出用）
+  bool checkWillMerge(int row, int col) {
+    if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) return false;
+    if (board[row][col] != 0) return false;
+
+    // ボードをコピーしてシミュレーション
+    final tempBoard = List.generate(
+      boardSize,
+      (i) => List<int>.from(board[i]),
+    );
+
+    // タイルを配置
+    tempBoard[row][col] = currentNumber;
+    int tempRow = row;
+    int tempCol = col;
+
+    // 全てのマージで消えるタイルを収集
+    final allMergedPositions = <Position>[];
+
+    // マージをシミュレーション
+    bool merged = true;
+    while (merged) {
+      merged = false;
+
+      // 最後に配置した位置からマージをチェック
+      if (tempBoard[tempRow][tempCol] != 0) {
+        final number = tempBoard[tempRow][tempCol];
+        final group = _findConnectedGroupInBoard(tempBoard, tempRow, tempCol, number);
+
+        if (group.length >= 3) {
+          // このグループを記録
+          allMergedPositions.addAll(group);
+
+          // グループを削除して1つ大きい数字に
+          for (var pos in group) {
+            tempBoard[pos.row][pos.col] = 0;
+          }
+          tempBoard[tempRow][tempCol] = number + 1;
+          merged = true;
+        }
+      }
+
+      // 他の場所もチェック
+      if (!merged) {
+        for (int r = 0; r < boardSize; r++) {
+          for (int c = 0; c < boardSize; c++) {
+            if (tempBoard[r][c] == 0) continue;
+            if (r == tempRow && c == tempCol) continue;
+
+            final number = tempBoard[r][c];
+            final group = _findConnectedGroupInBoard(tempBoard, r, c, number);
+
+            if (group.length >= 3) {
+              allMergedPositions.addAll(group);
+              for (var pos in group) {
+                tempBoard[pos.row][pos.col] = 0;
+              }
+              tempBoard[r][c] = number + 1;
+              tempRow = r;
+              tempCol = c;
+              merged = true;
+              break;
+            }
+          }
+          if (merged) break;
+        }
+      }
+    }
+
+    if (allMergedPositions.isNotEmpty) {
+      pendingMergePositions = allMergedPositions;
+      pendingMergeNumber = currentNumber;
+      return true;
+    }
+    return false;
+  }
+
+  // 指定されたボードでグループを検索
+  List<Position> _findConnectedGroupInBoard(
+    List<List<int>> tempBoard,
+    int startRow,
+    int startCol,
+    int number,
+  ) {
+    final visited = List.generate(boardSize, (_) => List.filled(boardSize, false));
+    final group = <Position>[];
+
+    void dfs(int row, int col) {
+      if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) return;
+      if (visited[row][col]) return;
+      if (tempBoard[row][col] != number) return;
+
+      visited[row][col] = true;
+      group.add(Position(row, col));
+
+      dfs(row - 1, col);
+      dfs(row + 1, col);
+      dfs(row, col - 1);
+      dfs(row, col + 1);
+    }
+
+    dfs(startRow, startCol);
+    return group;
   }
 
   bool placeTile(int row, int col) {
@@ -115,14 +222,30 @@ class GameModel {
     return false;
   }
 
-  List<Position> findConnectedGroup(int startRow, int startCol, int number) {
+  List<Position> findConnectedGroup(
+    int startRow,
+    int startCol,
+    int number, {
+    int? virtualRow,
+    int? virtualCol,
+    int? virtualNumber,
+  }) {
     final visited = List.generate(boardSize, (_) => List.filled(boardSize, false));
     final group = <Position>[];
 
     void dfs(int row, int col) {
       if (row < 0 || row >= boardSize || col < 0 || col >= boardSize) return;
       if (visited[row][col]) return;
-      if (board[row][col] != number) return;
+
+      // 仮想タイルの位置かチェック
+      final cellNumber = (virtualRow != null &&
+              virtualCol != null &&
+              row == virtualRow &&
+              col == virtualCol)
+          ? virtualNumber
+          : board[row][col];
+
+      if (cellNumber != number) return;
 
       visited[row][col] = true;
       group.add(Position(row, col));

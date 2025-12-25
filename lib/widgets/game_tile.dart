@@ -7,6 +7,8 @@ class GameTile extends StatelessWidget {
   final bool isAnimating;
   final AnimationController animationController;
   final VoidCallback onTap;
+  final bool isGlowing;
+  final AnimationController glowController;
 
   const GameTile({
     super.key,
@@ -14,6 +16,8 @@ class GameTile extends StatelessWidget {
     required this.isAnimating,
     required this.animationController,
     required this.onTap,
+    this.isGlowing = false,
+    required this.glowController,
   });
 
   @override
@@ -24,13 +28,16 @@ class GameTile extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: AnimatedBuilder(
-        animation: animationController,
+        animation: Listenable.merge([animationController, glowController]),
         builder: (context, child) {
           final scale = isAnimating
               ? 1.0 + (animationController.value * 0.15 * (1 - animationController.value) * 4)
               : 1.0;
 
           final tileColors = skinManager.getTileGradient(number, currentSkin);
+
+          // グローエフェクトの強度を計算
+          final glowIntensity = isGlowing ? glowController.value : 0.0;
 
           return Transform.scale(
             scale: scale,
@@ -54,9 +61,11 @@ class GameTile extends StatelessWidget {
                 boxShadow: number != 0
                     ? [
                         BoxShadow(
-                          color: GameColors.getTileGlowColor(number).withValues(alpha: 0.6),
-                          blurRadius: 15,
-                          spreadRadius: 2,
+                          color: GameColors.getTileGlowColor(number).withValues(
+                            alpha: 0.6 + (glowIntensity * 0.4),
+                          ),
+                          blurRadius: 15 + (glowIntensity * 20),
+                          spreadRadius: 2 + (glowIntensity * 8),
                         ),
                         BoxShadow(
                           color: Colors.black.withValues(alpha: 0.3),

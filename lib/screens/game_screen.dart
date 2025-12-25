@@ -34,10 +34,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late AnimationController _scorePopupController;
   late AnimationController _comboController;
   late AnimationController _particleController;
+  late AnimationController _glowController;
   final SoundManager _soundManager = SoundManager();
   List<Particle> particles = [];
   Timer? _particleTimer;
   String _playerName = '';
+  Set<String> _glowingTiles = {}; // 光っているタイル "row,col"
 
   @override
   void initState() {
@@ -71,6 +73,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       vsync: this,
     )..addListener(_updateParticles);
 
+    _glowController = AnimationController(
+      duration: const Duration(milliseconds: 200),
+      vsync: this,
+    );
+
     _particleTimer = Timer.periodic(const Duration(milliseconds: 16), (timer) {
       if (mounted) {
         _particleController.forward(from: 0);
@@ -91,6 +98,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _scorePopupController.dispose();
     _comboController.dispose();
     _particleController.dispose();
+    _glowController.dispose();
     _particleTimer?.cancel();
     super.dispose();
   }
@@ -132,6 +140,27 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (game.board[row][col] != 0) return;
 
     _soundManager.playTap();
+
+    // マージが発生するかチェック
+    final willMerge = game.checkWillMerge(row, col);
+
+    if (willMerge && game.pendingMergePositions.length >= 3) {
+      // 光るタイルを設定
+      setState(() {
+        _glowingTiles = game.pendingMergePositions
+            .map((pos) => '${pos.row},${pos.col}')
+            .toSet();
+      });
+
+      // 光るアニメーション
+      _glowController.forward(from: 0);
+      await Future.delayed(const Duration(milliseconds: 200));
+
+      // 光を消す
+      setState(() {
+        _glowingTiles.clear();
+      });
+    }
 
     final scoreBefore = game.score;
 
@@ -741,12 +770,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   final row = index ~/ game.boardSize;
                   final col = index % game.boardSize;
                   final number = game.board[row][col];
+                  final isGlowing = _glowingTiles.contains('$row,$col');
 
                   return GameTile(
                     number: number,
                     isAnimating: row == lastMergedRow && col == lastMergedCol,
                     animationController: _tileAnimationController,
                     onTap: () => _placeTile(row, col),
+                    isGlowing: isGlowing,
+                    glowController: _glowController,
                   );
                 },
               ),
