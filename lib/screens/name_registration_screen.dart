@@ -41,6 +41,14 @@ class _NameRegistrationScreenState extends State<NameRegistrationScreen> {
       return;
     }
 
+    // 不適切な名前チェック
+    if (PlayerManager().isInappropriateName(name)) {
+      setState(() {
+        _errorMessage = '不適切な名前は使用できません';
+      });
+      return;
+    }
+
     setState(() {
       _isChecking = true;
       _errorMessage = null;

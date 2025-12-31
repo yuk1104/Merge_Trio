@@ -13,6 +13,21 @@ class PlayerManager {
   String? _playerName;
   static const String _playerNameKey = 'player_name';
 
+  // 不適切な単語リスト（NGワード）
+  static final List<String> _inappropriateWords = [
+    // 性的な表現
+    'セックス', 'sex', 'えっち', 'エッチ', 'ちんこ', 'まんこ', 'おっぱい',
+    'ちんぽ', 'おめこ', 'ぱいぱい', 'ぱいずり', 'ふぇら', 'フェラ', 'シコシコ', 
+    'しこしこ', 'せっくす'
+    // 下品な表現
+    'うんこ', 'うんち', 'くそ', 'クソ', 'しね', 'シネ', '死ね', 'ころす', '殺す',
+    'きちがい', 'キチガイ', '気違い', 'かたわ', 'めくら', 'つんぼ', 'ちんば',
+    // 差別用語
+    '部落', 'えた', 'ひにん',
+    // その他の不適切な表現
+    'porn', 'fuck', 'shit', 'dick', 'pussy', 'bitch', 'ass',
+  ];
+
   // プレイヤー名を取得
   Future<String?> getPlayerName() async {
     if (_playerName != null) return _playerName;
@@ -33,6 +48,20 @@ class PlayerManager {
   Future<bool> isPlayerNameRegistered() async {
     final name = await getPlayerName();
     return name != null && name.isNotEmpty;
+  }
+
+  // 不適切な名前かどうかをチェック
+  bool isInappropriateName(String name) {
+    final lowerName = name.toLowerCase();
+
+    // NGワードが含まれているかチェック
+    for (final word in _inappropriateWords) {
+      if (lowerName.contains(word.toLowerCase())) {
+        return true;
+      }
+    }
+
+    return false;
   }
 
   // 名前の重複チェック
