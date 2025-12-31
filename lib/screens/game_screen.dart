@@ -11,6 +11,7 @@ import '../managers/player_manager.dart';
 import '../managers/skin_manager.dart';
 import '../screens/ranking_screen.dart';
 import '../screens/home_screen.dart';
+import '../screens/rules_screen.dart';
 import '../widgets/game_colors.dart';
 import '../widgets/game_tile.dart';
 import '../widgets/particle_painter.dart';
@@ -445,17 +446,102 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             fontSize: 24,
           ),
         ),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.person, color: Colors.white),
-              title: Text(
-                'プレイヤー名: $_playerName',
-                style: const TextStyle(color: Colors.white),
+        content: StatefulBuilder(
+          builder: (context, setDialogState) => Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.person, color: Colors.white),
+                title: Text(
+                  'プレイヤー名: $_playerName',
+                  style: const TextStyle(color: Colors.white),
+                ),
+              ),
+              const SizedBox(height: 20),
+              // 音量調整
+              Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.volume_up, color: Colors.white, size: 20),
+                      const SizedBox(width: 12),
+                      const Text(
+                        '音量',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${(_soundManager.volume * 100).round()}%',
+                        style: const TextStyle(
+                          color: GameColors.accentPinkLight,
+                          fontSize: 14,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
+                  SliderTheme(
+                    data: SliderThemeData(
+                      activeTrackColor: GameColors.accentPinkLight,
+                      inactiveTrackColor: Colors.white.withValues(alpha: 0.2),
+                      thumbColor: GameColors.accentPinkLight,
+                      overlayColor: GameColors.accentPinkLight.withValues(alpha: 0.2),
+                      trackHeight: 3,
+                    ),
+                    child: Slider(
+                      value: _soundManager.volume,
+                      min: 0.0,
+                      max: 1.0,
+                      onChanged: (value) {
+                        setDialogState(() {
+                          _soundManager.setVolume(value);
+                        });
+                      },
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _soundManager.playButton();
+                  Navigator.pop(context); // 設定ダイアログを閉じる
+                  Navigator.of(context).push(
+                    MaterialPageRoute(
+                      builder: (context) => const RulesScreen(),
+                    ),
+                  );
+                },
+                icon: const Icon(Icons.menu_book, color: Colors.white, size: 20),
+                label: const Text(
+                  'ルール説明',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  elevation: 0,
+                ),
               ),
             ),
-            const SizedBox(height: 20),
+            const SizedBox(height: 10),
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -573,6 +659,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ),
             ),
           ],
+        ),
         ),
         actions: [
           TextButton(

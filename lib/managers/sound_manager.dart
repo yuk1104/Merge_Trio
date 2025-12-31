@@ -11,12 +11,12 @@ class SoundManager {
 
   // 定数
   static const int _maxSimultaneousSounds = 5;
-  static const double _tapVolume = 0.2;
-  static const double _mergeVolume = 0.3;
-  static const double _comboVolume = 0.4;
-  static const double _gameOverVolume = 0.4;
-  static const double _buttonVolume = 0.2;
-  static const double _gameStartVolume = 0.3;
+  static const double _baseTapVolume = 0.2;
+  static const double _baseMergeVolume = 0.3;
+  static const double _baseComboVolume = 0.4;
+  static const double _baseGameOverVolume = 0.4;
+  static const double _baseButtonVolume = 0.2;
+  static const double _baseGameStartVolume = 0.3;
 
   // ローカルアセットの効果音
   static const String _tapSound = 'assets/sounds/tap.mp3';
@@ -32,6 +32,7 @@ class SoundManager {
   int _currentTapPlayerIndex = 0;
   int _currentMergePlayerIndex = 0;
   int _currentButtonPlayerIndex = 0;
+  double _masterVolume = 1.0; // マスターボリューム (0.0 ~ 1.0)
 
   // オーディオプレイヤー
   final List<AudioPlayer> _tapPlayers = [];
@@ -57,7 +58,7 @@ class SoundManager {
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
         await player.setAsset(_tapSound);
-        await player.setVolume(_tapVolume);
+        await player.setVolume(_baseTapVolume * _masterVolume);
         _tapPlayers.add(player);
       }
 
@@ -65,7 +66,7 @@ class SoundManager {
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
         await player.setAsset(_mergeSound);
-        await player.setVolume(_mergeVolume);
+        await player.setVolume(_baseMergeVolume * _masterVolume);
         _mergePlayers.add(player);
       }
 
@@ -73,7 +74,7 @@ class SoundManager {
       for (int i = 0; i < _maxSimultaneousSounds; i++) {
         final player = AudioPlayer();
         await player.setAsset(_buttonSound);
-        await player.setVolume(_buttonVolume);
+        await player.setVolume(_baseButtonVolume * _masterVolume);
         _buttonPlayers.add(player);
       }
 
@@ -86,9 +87,9 @@ class SoundManager {
       await _gameOverPlayer?.setAsset(_gameOverSound);
       await _gameStartPlayer?.setAsset(_gameStartSound);
 
-      await _comboPlayer?.setVolume(_comboVolume);
-      await _gameOverPlayer?.setVolume(_gameOverVolume);
-      await _gameStartPlayer?.setVolume(_gameStartVolume);
+      await _comboPlayer?.setVolume(_baseComboVolume * _masterVolume);
+      await _gameOverPlayer?.setVolume(_baseGameOverVolume * _masterVolume);
+      await _gameStartPlayer?.setVolume(_baseGameStartVolume * _masterVolume);
 
       _initialized = true;
     } catch (e) {
@@ -188,6 +189,33 @@ class SoundManager {
   }
 
   bool get isSoundEnabled => _soundEnabled;
+
+  // 音量を設定 (0.0 ~ 1.0)
+  Future<void> setVolume(double volume) async {
+    _masterVolume = volume.clamp(0.0, 1.0);
+
+    if (!_initialized) return;
+
+    try {
+      // 全てのプレイヤーの音量を更新
+      for (var player in _tapPlayers) {
+        await player.setVolume(_baseTapVolume * _masterVolume);
+      }
+      for (var player in _mergePlayers) {
+        await player.setVolume(_baseMergeVolume * _masterVolume);
+      }
+      for (var player in _buttonPlayers) {
+        await player.setVolume(_baseButtonVolume * _masterVolume);
+      }
+      await _comboPlayer?.setVolume(_baseComboVolume * _masterVolume);
+      await _gameOverPlayer?.setVolume(_baseGameOverVolume * _masterVolume);
+      await _gameStartPlayer?.setVolume(_baseGameStartVolume * _masterVolume);
+    } catch (e) {
+      // エラーを無視
+    }
+  }
+
+  double get volume => _masterVolume;
 
   void dispose() {
     for (var player in _tapPlayers) {
