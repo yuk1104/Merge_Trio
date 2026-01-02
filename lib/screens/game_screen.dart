@@ -41,6 +41,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Timer? _particleTimer;
   String _playerName = '';
   Set<String> _glowingTiles = {}; // 光っているタイル "row,col"
+  bool _isProcessingMerge = false; // マージ処理中フラグ
 
   // スコアに応じた色を取得
   Color _getScoreColor(int score) {
@@ -314,84 +315,84 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _placeTile(int row, int col) async {
-    if (game.board[row][col] != 0) return;
+    if (_isProcessingMerge || game.board[row][col] != 0) return;
 
     _soundManager.playTap();
+    _isProcessingMerge = true;
 
-    // マージが発生するかチェック
-    final willMerge = game.checkWillMerge(row, col);
-
-    if (willMerge && game.pendingMergePositions.length >= 3) {
-      // 光るタイルを設定
-      setState(() {
-        _glowingTiles = game.pendingMergePositions
-            .map((pos) => '${pos.row},${pos.col}')
-            .toSet();
-      });
-
-      // 光るアニメーション
-      _glowController.forward(from: 0);
-      await Future.delayed(const Duration(milliseconds: 200));
-
-      // 光を消す
-      setState(() {
-        _glowingTiles.clear();
-      });
-    }
+    await _playMergeGlowAnimation(row, col);
 
     final scoreBefore = game.score;
+    setState(() => game.placeTile(row, col));
 
-    setState(() {
-      game.placeTile(row, col);
-    });
-
-    lastMergedRow = row;
-    lastMergedCol = col;
-    lastAddedScore = game.score - scoreBefore;
-
-    if (lastAddedScore > 0) {
-      _createParticles(
-        (col + 0.5) * 80.0,
-        (row + 0.5) * 80.0,
-        GameColors.getTileGlowColor(game.board[row][col]),
-      );
-      _soundManager.playMerge(game.board[row][col]);
-    }
-
-    if (lastAddedScore > 0) {
-      setState(() {
-        showScorePopup = true;
-      });
-      _scorePopupController.forward(from: 0);
-      await Future.delayed(const Duration(milliseconds: 800));
-      if (mounted) {
-        setState(() {
-          showScorePopup = false;
-        });
-      }
-    }
-
-    if (game.comboCount > 1) {
-      _soundManager.playCombo(game.comboCount);
-      setState(() {
-        showCombo = true;
-      });
-      _comboController.forward(from: 0);
-      await Future.delayed(const Duration(milliseconds: 600));
-      if (mounted) {
-        setState(() {
-          showCombo = false;
-        });
-      }
-    }
+    _updateMergeResult(row, col, scoreBefore);
+    await _playMergeEffects();
 
     _tileAnimationController.forward(from: 0);
+    _isProcessingMerge = false;
 
     if (game.isGameOver) {
       _soundManager.playGameOver();
       await Future.delayed(const Duration(milliseconds: 500));
       _showGameOverDialog();
     }
+  }
+
+  Future<void> _playMergeGlowAnimation(int row, int col) async {
+    final willMerge = game.checkWillMerge(row, col);
+    if (!willMerge || game.pendingMergePositions.length < 3) return;
+
+    setState(() {
+      _glowingTiles = game.pendingMergePositions
+          .map((pos) => '${pos.row},${pos.col}')
+          .toSet();
+    });
+
+    _glowController.forward(from: 0);
+    await Future.delayed(const Duration(milliseconds: 130));
+
+    setState(() => _glowingTiles.clear());
+  }
+
+  void _updateMergeResult(int row, int col, int scoreBefore) {
+    lastMergedRow = row;
+    lastMergedCol = col;
+    lastAddedScore = game.score - scoreBefore;
+  }
+
+  Future<void> _playMergeEffects() async {
+    if (lastAddedScore > 0) {
+      _createParticles(
+        (lastMergedCol! + 0.5) * 80.0,
+        (lastMergedRow! + 0.5) * 80.0,
+        GameColors.getTileGlowColor(game.board[lastMergedRow!][lastMergedCol!]),
+      );
+      _soundManager.playMerge(game.board[lastMergedRow!][lastMergedCol!]);
+      _showScorePopupAsync();
+    }
+
+    if (game.comboCount > 1) {
+      _soundManager.playCombo(game.comboCount);
+      _showComboAsync();
+    }
+  }
+
+  void _showScorePopupAsync() {
+    setState(() => showScorePopup = true);
+    _scorePopupController.forward(from: 0);
+
+    Future.delayed(const Duration(milliseconds: 800)).then((_) {
+      if (mounted) setState(() => showScorePopup = false);
+    });
+  }
+
+  void _showComboAsync() {
+    setState(() => showCombo = true);
+    _comboController.forward(from: 0);
+
+    Future.delayed(const Duration(milliseconds: 600)).then((_) {
+      if (mounted) setState(() => showCombo = false);
+    });
   }
 
   void _restartGame() {
