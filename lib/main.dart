@@ -122,12 +122,12 @@ Future<void> _restoreUserData(String uid) async {
         debugPrint('Restored player name: $playerName');
       }
 
-      // 3. ベストスコアを復元
+      // 3. ベストスコアを復元（4x4のスコアとして復元）
       if (bestScore != null) {
         await ScoreManager().initialize();
-        // ScoreManagerの内部データを更新
-        await ScoreManager().checkAndUpdateBestScore(bestScore);
-        debugPrint('Restored best score: $bestScore');
+        // ScoreManagerの内部データを更新（デフォルトで4x4として扱う）
+        await ScoreManager().checkAndUpdateBestScore(bestScore, 4);
+        debugPrint('Restored best score: $bestScore (as 4x4)');
       }
     } else {
       debugPrint('No data found for UID: $uid');

@@ -15,10 +15,11 @@ import '../screens/rules_screen.dart';
 import '../widgets/game_colors.dart';
 import '../widgets/game_tile.dart';
 import '../widgets/particle_painter.dart';
-import '../main.dart';
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  final int boardSize;
+
+  const GameScreen({super.key, this.boardSize = 4});
 
   @override
   State<GameScreen> createState() => _GameScreenState();
@@ -222,7 +223,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   @override
   void initState() {
     super.initState();
-    game = GameModel();
+    game = GameModel(boardSize: widget.boardSize);
     _loadPlayerName();
 
     // ゲーム開始音を再生
@@ -362,9 +363,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Future<void> _playMergeEffects() async {
     if (lastAddedScore > 0) {
+      // 画面幅から動的にタイルサイズを計算
+      final screenWidth = MediaQuery.of(context).size.width;
+      final boardWidth = screenWidth - 48; // マージン分を引く
+      final tileSize = (boardWidth - (game.boardSize + 1) * 8) / game.boardSize;
+
       _createParticles(
-        (lastMergedCol! + 0.5) * 80.0,
-        (lastMergedRow! + 0.5) * 80.0,
+        (lastMergedCol! + 0.5) * (tileSize + 8) + 24,
+        (lastMergedRow! + 0.5) * (tileSize + 8),
         GameColors.getTileGlowColor(game.board[lastMergedRow!][lastMergedCol!]),
       );
       _soundManager.playMerge(game.board[lastMergedRow!][lastMergedCol!]);
@@ -411,7 +417,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   void _showGameOverDialog() async {
     // ベストスコアをチェックして更新
-    final isNewRecord = await ScoreManager().checkAndUpdateBestScore(game.score);
+    final isNewRecord = await ScoreManager().checkAndUpdateBestScore(game.score, game.boardSize);
 
     if (!mounted) return;
 
@@ -628,37 +634,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  _soundManager.playButton();
-                  _confirmDeleteAccount();
-                },
-                icon: const Icon(Icons.delete_forever, color: Colors.white70, size: 20),
-                label: const Text(
-                  'アカウントを削除',
-                  style: TextStyle(
-                    color: Colors.white70,
-                    fontWeight: FontWeight.w600,
-                    fontSize: 15,
-                  ),
-                ),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.white.withValues(alpha: 0.08),
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    side: BorderSide(
-                      color: Colors.red.withValues(alpha: 0.3),
-                      width: 1,
-                    ),
-                  ),
-                  elevation: 0,
-                ),
-              ),
-            ),
           ],
         ),
         ),
@@ -676,111 +651,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         ],
       ),
     );
-  }
-
-  void _confirmDeleteAccount() {
-    Navigator.pop(context); // 設定ダイアログを閉じる
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: const Color(0xFF1A1A2E),
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20),
-          side: BorderSide(
-            color: Colors.red.withValues(alpha: 0.5),
-            width: 2,
-          ),
-        ),
-        title: const Row(
-          children: [
-            Icon(Icons.warning, color: Colors.red, size: 28),
-            SizedBox(width: 10),
-            Text(
-              '確認',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ],
-        ),
-        content: const Text(
-          'アカウントを削除すると、すべてのデータ（スコア、ランキング）が完全に削除されます。\n\nこの操作は元に戻せません。本当に削除しますか？',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text(
-              'キャンセル',
-              style: TextStyle(
-                color: Colors.white70,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => _deleteAccount(),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red.shade700,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(12),
-              ),
-            ),
-            child: const Text(
-              '削除する',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  void _deleteAccount() async {
-    Navigator.pop(context); // 確認ダイアログを閉じる
-
-    // ローディング表示
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(
-          color: GameColors.accentPink,
-        ),
-      ),
-    );
-
-    // アカウント削除を実行
-    final success = await PlayerManager().deleteAccount();
-
-    if (!mounted) return;
-
-    Navigator.pop(context); // ローディングを閉じる
-
-    if (success) {
-      // 削除成功 - アプリを再起動（名前登録画面に戻る）
-      if (!mounted) return;
-      Navigator.of(context).pushAndRemoveUntil(
-        MaterialPageRoute(builder: (context) => const InitialScreen()),
-        (route) => false,
-      );
-    } else {
-      // 削除失敗
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('アカウントの削除に失敗しました'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
   }
 
 
@@ -1037,6 +907,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     onTap: () => _placeTile(row, col),
                     isGlowing: isGlowing,
                     glowController: _glowController,
+                    boardSize: game.boardSize,
                   );
                 },
               ),

@@ -14,6 +14,7 @@ class _RankingScreenState extends State<RankingScreen> {
   final SoundManager _soundManager = SoundManager();
   List<RankingEntry> _rankings = [];
   bool _isLoading = true;
+  int _selectedBoardSize = 4; // 4x4 or 5x5
 
   @override
   void initState() {
@@ -22,12 +23,24 @@ class _RankingScreenState extends State<RankingScreen> {
   }
 
   Future<void> _loadRankings() async {
-    final rankings = await RankingManager().getTopRankings(limit: 100);
+    setState(() {
+      _isLoading = true;
+    });
+    final rankings = await RankingManager().getTopRankings(limit: 100, boardSize: _selectedBoardSize);
     if (mounted) {
       setState(() {
         _rankings = rankings;
         _isLoading = false;
       });
+    }
+  }
+
+  void _switchBoardSize(int newSize) {
+    if (_selectedBoardSize != newSize) {
+      setState(() {
+        _selectedBoardSize = newSize;
+      });
+      _loadRankings();
     }
   }
 
@@ -42,6 +55,7 @@ class _RankingScreenState extends State<RankingScreen> {
           child: Column(
             children: [
               _buildHeader(),
+              _buildBoardSizeToggle(),
               Expanded(
                 child: _isLoading
                     ? const Center(
@@ -92,6 +106,76 @@ class _RankingScreenState extends State<RankingScreen> {
           ),
           const SizedBox(width: 48), // Balance for back button
         ],
+      ),
+    );
+  }
+
+  Widget _buildBoardSizeToggle() {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+      child: Container(
+        decoration: BoxDecoration(
+          color: Colors.black.withOpacity(0.3),
+          borderRadius: BorderRadius.circular(25),
+          border: Border.all(
+            color: Colors.white.withOpacity(0.1),
+            width: 1,
+          ),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: _buildToggleButton(
+                label: '4 × 4',
+                isSelected: _selectedBoardSize == 4,
+                onTap: () {
+                  _soundManager.playButton();
+                  _switchBoardSize(4);
+                },
+              ),
+            ),
+            Expanded(
+              child: _buildToggleButton(
+                label: '5 × 5',
+                isSelected: _selectedBoardSize == 5,
+                onTap: () {
+                  _soundManager.playButton();
+                  _switchBoardSize(5);
+                },
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildToggleButton({
+    required String label,
+    required bool isSelected,
+    required VoidCallback onTap,
+  }) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        decoration: BoxDecoration(
+          gradient: isSelected
+              ? const LinearGradient(
+                  colors: [GameColors.accentPink, GameColors.accentPinkLight],
+                )
+              : null,
+          borderRadius: BorderRadius.circular(25),
+        ),
+        child: Text(
+          label,
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: isSelected ? Colors.white : Colors.white.withOpacity(0.5),
+          ),
+        ),
       ),
     );
   }

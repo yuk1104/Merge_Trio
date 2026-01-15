@@ -9,6 +9,7 @@ class GameTile extends StatelessWidget {
   final VoidCallback onTap;
   final bool isGlowing;
   final AnimationController glowController;
+  final int boardSize;
 
   const GameTile({
     super.key,
@@ -18,6 +19,7 @@ class GameTile extends StatelessWidget {
     required this.onTap,
     this.isGlowing = false,
     required this.glowController,
+    this.boardSize = 4,
   });
 
   @override
@@ -81,7 +83,7 @@ class GameTile extends StatelessWidget {
                     ? Text(
                         '$number',
                         style: TextStyle(
-                          fontSize: 36,
+                          fontSize: boardSize == 4 ? 36 : 24,
                           fontWeight: FontWeight.w900,
                           color: skinManager.getTileTextColor(number, currentSkin),
                           shadows: const [

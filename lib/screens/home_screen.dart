@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'game_screen.dart';
 import 'ranking_screen.dart';
+import 'board_size_selection_screen.dart';
 import 'unlock_pastel_dialog.dart';
 import '../managers/sound_manager.dart';
 import '../managers/skin_manager.dart';
@@ -70,9 +71,9 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
                       onPressed: () {
                         _soundManager.playButton();
-                        Navigator.of(context).pushReplacement(
+                        Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const GameScreen(),
+                            builder: (context) => const BoardSizeSelectionScreen(),
                           ),
                         );
                       },

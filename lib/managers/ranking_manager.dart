@@ -7,12 +7,14 @@ class RankingEntry {
   final String playerName;
   final int score;
   final DateTime timestamp;
+  final int boardSize;
 
   RankingEntry({
     required this.userId,
     required this.playerName,
     required this.score,
     required this.timestamp,
+    this.boardSize = 4,
   });
 
   Map<String, dynamic> toMap() {
@@ -21,6 +23,7 @@ class RankingEntry {
       'playerName': playerName,
       'score': score,
       'timestamp': Timestamp.fromDate(timestamp),
+      'boardSize': boardSize,
     };
   }
 
@@ -30,6 +33,7 @@ class RankingEntry {
       playerName: map['playerName'] ?? 'Anonymous',
       score: map['score'] ?? 0,
       timestamp: (map['timestamp'] as Timestamp).toDate(),
+      boardSize: map['boardSize'] ?? 4,
     );
   }
 }
@@ -76,10 +80,10 @@ class RankingManager {
     }
   }
 
-  // スコア送信（ユーザーごとに最高スコアのみを保持）
-  Future<void> submitScore(String playerName, int score) async {
+  // スコア送信（ユーザーごと・盤面サイズごとに最高スコアのみを保持）
+  Future<void> submitScore(String playerName, int score, int boardSize) async {
     try {
-      debugPrint('Submitting score: $playerName - $score');
+      debugPrint('Submitting score: $playerName - $score (boardSize: $boardSize)');
       final userId = await _getUserId();
       debugPrint('Got userId: $userId');
 
@@ -90,25 +94,48 @@ class RankingManager {
         return;
       }
 
-      // userIdをドキュメントIDとして使用し、既存のスコアを上書き
-      await _firestore.collection('leaderboard').doc(userId).set({
+      // ボードサイズごとに別のコレクションを使用
+      // 既存のleaderboardは4×4として使用
+      final collectionName = boardSize == 4 ? 'leaderboard' : 'leaderboard_5x5';
+
+      // 既存のドキュメントを確認
+      final docRef = _firestore.collection(collectionName).doc(userId);
+      final existingDoc = await docRef.get();
+
+      // 管理者が手動で変更した名前を保持するため、既存の名前を優先
+      String finalPlayerName = playerName;
+      if (existingDoc.exists) {
+        final existingData = existingDoc.data();
+        final existingName = existingData?['playerName'] as String?;
+        // 既存の名前がある場合、それを使用（管理者が変更した可能性があるため）
+        if (existingName != null && existingName.isNotEmpty) {
+          finalPlayerName = existingName;
+          debugPrint('Using existing playerName from Firestore: $existingName');
+        }
+      }
+
+      // userIdをドキュメントIDとして使用し、スコアを更新
+      await docRef.set({
         'userId': userId,
-        'playerName': playerName,
+        'playerName': finalPlayerName,
         'score': score,
+        'boardSize': boardSize,
         'timestamp': FieldValue.serverTimestamp(),
       });
-      debugPrint('Score submitted successfully to Firestore');
+      debugPrint('Score submitted successfully to Firestore ($collectionName)');
     } catch (e) {
       debugPrint('Error submitting score: $e');
     }
   }
 
   // トップランキング取得（ユーザーごとに最高スコアのみ）
-  Future<List<RankingEntry>> getTopRankings({int limit = 100}) async {
+  Future<List<RankingEntry>> getTopRankings({int limit = 100, int boardSize = 4}) async {
     try {
-      debugPrint('Fetching rankings from Firestore (limit: $limit)...');
+      // 既存のleaderboardは4×4として使用
+      final collectionName = boardSize == 4 ? 'leaderboard' : 'leaderboard_5x5';
+      debugPrint('Fetching rankings from Firestore ($collectionName, limit: $limit)...');
       final querySnapshot = await _firestore
-          .collection('leaderboard')
+          .collection(collectionName)
           .orderBy('score', descending: true)
           .limit(limit * 2) // 余裕を持って取得（重複ユーザーを考慮）
           .get(const GetOptions(source: Source.server)); // キャッシュを使わず常にサーバーから取得
@@ -143,9 +170,9 @@ class RankingManager {
   }
 
   // 自分の順位取得
-  Future<int?> getMyRank(String userId) async {
+  Future<int?> getMyRank(String userId, {int boardSize = 4}) async {
     try {
-      final allScores = await getTopRankings(limit: 1000);
+      final allScores = await getTopRankings(limit: 1000, boardSize: boardSize);
       final index = allScores.indexWhere((entry) => entry.userId == userId);
       return index == -1 ? null : index + 1;
     } catch (e) {

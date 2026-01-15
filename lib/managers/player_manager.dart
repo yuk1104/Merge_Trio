@@ -125,6 +125,38 @@ class PlayerManager {
     _playerName = null;
   }
 
+  // leaderboardコレクションから削除（UserIdと名前の両方で試行）
+  Future<void> _deleteFromLeaderboard(String collectionName, String userId, String? playerName) async {
+    try {
+      print('Attempting to delete from $collectionName with userId: $userId');
+
+      // まずUserIdで削除を試みる
+      await _firestore.collection(collectionName).doc(userId).delete();
+      print('Successfully deleted from $collectionName by userId');
+    } catch (e) {
+      print('Could not delete by userId from $collectionName: $e');
+    }
+
+    // 名前でも検索して削除（UserIdが異なる古いデータ用）
+    if (playerName != null && playerName.isNotEmpty) {
+      try {
+        print('Also searching $collectionName by playerName: $playerName');
+        final querySnapshot = await _firestore
+            .collection(collectionName)
+            .where('playerName', isEqualTo: playerName)
+            .get();
+
+        print('Found ${querySnapshot.docs.length} documents in $collectionName with playerName');
+        for (var doc in querySnapshot.docs) {
+          await doc.reference.delete();
+          print('Deleted from $collectionName (by name): ${doc.id}');
+        }
+      } catch (e) {
+        print('Error deleting by name from $collectionName: $e');
+      }
+    }
+  }
+
   // アカウント削除（Firestoreとローカルデータを削除）
   Future<bool> deleteAccount() async {
     try {
@@ -141,15 +173,15 @@ class PlayerManager {
 
       print('User ID: $userId');
 
-      // 1. Firestoreのleaderboardから削除
-      try {
-        print('Attempting to delete from leaderboard with userId: $userId');
-        await _firestore.collection('leaderboard').doc(userId).delete();
-        print('Successfully deleted from leaderboard');
-      } catch (e, stackTrace) {
-        print('Error deleting from leaderboard: $e');
-        print('Stack trace: $stackTrace');
-      }
+      // プレイヤー名を取得（名前での検索用）
+      final playerName = await getPlayerName();
+      print('Player name: $playerName');
+
+      // 1. Firestoreのleaderboard（4×4）から削除
+      await _deleteFromLeaderboard('leaderboard', userId, playerName);
+
+      // 2. Firestoreのleaderboard_5x5から削除
+      await _deleteFromLeaderboard('leaderboard_5x5', userId, playerName);
 
       // 2. Firestoreのplayersから削除（userIdで検索、見つからなければ名前でも検索）
       try {
