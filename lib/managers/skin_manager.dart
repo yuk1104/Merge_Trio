@@ -149,6 +149,10 @@ class SkinManager extends ChangeNotifier {
         return [const Color(0xFF42A5F5), const Color(0xFF1E88E5)];
       case 7:
         return [const Color(0xFF66BB6A), const Color(0xFF43A047)];
+      case 8:
+        return [const Color(0xFF5C6BC0), const Color(0xFF3949AB)]; // インディゴ（濃い青紫）
+      case 9:
+        return [const Color(0xFFEC407A), const Color(0xFFD81B60)]; // マゼンタ（濃いピンク）
       default:
         return [const Color(0xFFEEEEEE), const Color(0xFFE0E0E0)];
     }
@@ -171,6 +175,10 @@ class SkinManager extends ChangeNotifier {
         return [const Color(0xFF9FFFDB), const Color(0xFF6FFFC9)]; // ミントグリーン
       case 7:
         return [const Color(0xFFFFF99C), const Color(0xFFFFED6F)]; // レモンイエロー
+      case 8:
+        return [const Color(0xFFC5CAE9), const Color(0xFF9FA8DA)]; // パステルインディゴ
+      case 9:
+        return [const Color(0xFFF48FB1), const Color(0xFFF06292)]; // パステルマゼンタ
       default:
         return [const Color(0xFFF5F5F5), const Color(0xFFEEEEEE)];
     }

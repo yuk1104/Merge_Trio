@@ -12,6 +12,7 @@ import 'managers/score_manager.dart';
 import 'managers/player_manager.dart';
 import 'managers/sound_manager.dart';
 import 'managers/skin_manager.dart';
+import 'managers/language_manager.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -48,6 +49,9 @@ void main() async {
 
   // スキンマネージャーを初期化
   await SkinManager().initialize();
+
+  // 言語マネージャーを初期化
+  await LanguageManager().initialize();
 
   // サウンドマネージャーを初期化（効果音の準備）
   final soundManager = SoundManager();
@@ -138,8 +142,32 @@ Future<void> _restoreUserData(String uid) async {
   }
 }
 
-class MergeTrioApp extends StatelessWidget {
+class MergeTrioApp extends StatefulWidget {
   const MergeTrioApp({super.key});
+
+  @override
+  State<MergeTrioApp> createState() => _MergeTrioAppState();
+}
+
+class _MergeTrioAppState extends State<MergeTrioApp> {
+  @override
+  void initState() {
+    super.initState();
+    // LanguageManagerの変更をリスン
+    LanguageManager().addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    LanguageManager().removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    setState(() {
+      // 言語が変更されたら画面を再構築
+    });
+  }
 
   @override
   Widget build(BuildContext context) {

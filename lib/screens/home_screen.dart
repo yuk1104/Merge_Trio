@@ -5,6 +5,7 @@ import 'board_size_selection_screen.dart';
 import 'unlock_pastel_dialog.dart';
 import '../managers/sound_manager.dart';
 import '../managers/skin_manager.dart';
+import '../managers/language_manager.dart';
 import '../widgets/game_colors.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -16,6 +17,25 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   static final SoundManager _soundManager = SoundManager();
+
+  @override
+  void initState() {
+    super.initState();
+    // LanguageManagerの変更をリッスン
+    LanguageManager().addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    LanguageManager().removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +103,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // ランキングボタン
                     _buildMenuButton(
                       context: context,
-                      label: 'ランキング',
+                      label: LanguageManager().translate('ranking'),
                       icon: Icons.leaderboard_rounded,
                       gradient: const LinearGradient(
                         colors: [Color(0xFFC9ADFF), Color(0xFFD4B9FF)],
@@ -102,7 +122,7 @@ class _HomeScreenState extends State<HomeScreen> {
                     // スキン変更ボタン
                     _buildMenuButton(
                       context: context,
-                      label: 'スキン変更',
+                      label: LanguageManager().translate('change_skin'),
                       icon: Icons.palette_rounded,
                       gradient: const LinearGradient(
                         colors: [Color(0xFF4FC3F7), Color(0xFF6DD5FA)],
@@ -138,9 +158,9 @@ class _HomeScreenState extends State<HomeScreen> {
             width: 2,
           ),
         ),
-        title: const Text(
-          'タイルスキン',
-          style: TextStyle(
+        title: Text(
+          LanguageManager().translate('tile_skin'),
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -150,9 +170,9 @@ class _HomeScreenState extends State<HomeScreen> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Text(
-                'お好みのスキンを選択してください',
-                style: TextStyle(
+              Text(
+                LanguageManager().translate('select_skin'),
+                style: const TextStyle(
                   color: Colors.white70,
                   fontSize: 14,
                 ),
@@ -281,9 +301,9 @@ class _HomeScreenState extends State<HomeScreen> {
               _soundManager.playButton();
               Navigator.pop(context);
             },
-            child: const Text(
-              '閉じる',
-              style: TextStyle(
+            child: Text(
+              LanguageManager().translate('close'),
+              style: const TextStyle(
                 color: GameColors.accentPink,
                 fontWeight: FontWeight.bold,
               ),

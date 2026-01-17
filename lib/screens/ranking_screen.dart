@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
 import '../managers/ranking_manager.dart';
 import '../managers/sound_manager.dart';
+import '../managers/language_manager.dart';
 import '../widgets/game_colors.dart';
 
 class RankingScreen extends StatefulWidget {
-  const RankingScreen({super.key});
+  final int initialBoardSize;
+
+  const RankingScreen({super.key, this.initialBoardSize = 4});
 
   @override
   State<RankingScreen> createState() => _RankingScreenState();
@@ -14,12 +17,27 @@ class _RankingScreenState extends State<RankingScreen> {
   final SoundManager _soundManager = SoundManager();
   List<RankingEntry> _rankings = [];
   bool _isLoading = true;
-  int _selectedBoardSize = 4; // 4x4 or 5x5
+  late int _selectedBoardSize; // 4x4 or 5x5
 
   @override
   void initState() {
     super.initState();
+    _selectedBoardSize = widget.initialBoardSize;
     _loadRankings();
+    // LanguageManagerの変更をリッスン
+    LanguageManager().addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    LanguageManager().removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   Future<void> _loadRankings() async {
@@ -181,19 +199,19 @@ class _RankingScreenState extends State<RankingScreen> {
   }
 
   Widget _buildEmptyState() {
-    return const Center(
+    return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
+          const Icon(
             Icons.leaderboard,
             size: 80,
             color: Colors.white38,
           ),
-          SizedBox(height: 20),
+          const SizedBox(height: 20),
           Text(
-            'まだランキングデータがありません',
-            style: TextStyle(
+            LanguageManager().translate('no_rankings'),
+            style: const TextStyle(
               fontSize: 16,
               color: Colors.white60,
             ),

@@ -1,8 +1,33 @@
 import 'package:flutter/material.dart';
 import 'game_screen.dart';
+import '../managers/language_manager.dart';
 
-class BoardSizeSelectionScreen extends StatelessWidget {
+class BoardSizeSelectionScreen extends StatefulWidget {
   const BoardSizeSelectionScreen({super.key});
+
+  @override
+  State<BoardSizeSelectionScreen> createState() => _BoardSizeSelectionScreenState();
+}
+
+class _BoardSizeSelectionScreenState extends State<BoardSizeSelectionScreen> {
+  @override
+  void initState() {
+    super.initState();
+    // LanguageManagerの変更をリッスン
+    LanguageManager().addListener(_onLanguageChanged);
+  }
+
+  @override
+  void dispose() {
+    LanguageManager().removeListener(_onLanguageChanged);
+    super.dispose();
+  }
+
+  void _onLanguageChanged() {
+    if (mounted) {
+      setState(() {});
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,34 +65,23 @@ class BoardSizeSelectionScreen extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      // タイトル
-                      const Text(
-                        'ボードサイズを選択',
-                        style: TextStyle(
-                          fontSize: 32,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const SizedBox(height: 60),
-
                       // 4x4ボタン
                       _buildSizeButton(
                         context: context,
                         size: 4,
                         label: '4 × 4',
-                        subtitle: 'スタンダード',
+                        subtitle: LanguageManager().translate('standard'),
                         color: const Color(0xFF6C5CE7),
                       ),
 
-                      const SizedBox(height: 30),
+                      const SizedBox(height: 24),
 
                       // 5x5ボタン
                       _buildSizeButton(
                         context: context,
                         size: 5,
                         label: '5 × 5',
-                        subtitle: 'チャレンジ',
+                        subtitle: LanguageManager().translate('challenge'),
                         color: const Color(0xFFFF6B9D),
                       ),
                     ],
@@ -98,114 +112,58 @@ class BoardSizeSelectionScreen extends StatelessWidget {
         );
       },
       child: Container(
-        width: 280,
-        height: 140,
+        width: 260,
+        height: 120,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
             colors: [
               color,
-              color.withOpacity(0.7),
+              color.withValues(alpha: 0.8),
             ],
           ),
           borderRadius: BorderRadius.circular(20),
           boxShadow: [
             BoxShadow(
-              color: color.withOpacity(0.5),
+              color: color.withValues(alpha: 0.4),
               blurRadius: 20,
-              offset: const Offset(0, 10),
+              offset: const Offset(0, 8),
             ),
           ],
         ),
-        child: Stack(
-          children: [
-            // グリッドパターンの装飾
-            Positioned.fill(
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(20),
-                child: CustomPaint(
-                  painter: _GridPatternPainter(gridSize: size),
+        child: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                label,
+                style: const TextStyle(
+                  fontSize: 48,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.white,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black26,
+                      offset: Offset(2, 2),
+                      blurRadius: 4,
+                    ),
+                  ],
                 ),
               ),
-            ),
-
-            // テキスト
-            Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(
-                    label,
-                    style: const TextStyle(
-                      fontSize: 48,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                      shadows: [
-                        Shadow(
-                          color: Colors.black26,
-                          offset: Offset(2, 2),
-                          blurRadius: 4,
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    subtitle,
-                    style: TextStyle(
-                      fontSize: 18,
-                      color: Colors.white.withOpacity(0.9),
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                ],
+              const SizedBox(height: 8),
+              Text(
+                subtitle,
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Colors.white.withValues(alpha: 0.9),
+                  fontWeight: FontWeight.w500,
+                ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
   }
-}
-
-// グリッドパターンを描画するカスタムペインター
-class _GridPatternPainter extends CustomPainter {
-  final int gridSize;
-
-  _GridPatternPainter({required this.gridSize});
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white.withOpacity(0.1)
-      ..strokeWidth = 1.5
-      ..style = PaintingStyle.stroke;
-
-    final cellWidth = size.width / gridSize;
-    final cellHeight = size.height / gridSize;
-
-    // 縦線
-    for (int i = 0; i <= gridSize; i++) {
-      final x = i * cellWidth;
-      canvas.drawLine(
-        Offset(x, 0),
-        Offset(x, size.height),
-        paint,
-      );
-    }
-
-    // 横線
-    for (int i = 0; i <= gridSize; i++) {
-      final y = i * cellHeight;
-      canvas.drawLine(
-        Offset(0, y),
-        Offset(size.width, y),
-        paint,
-      );
-    }
-  }
-
-  @override
-  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }

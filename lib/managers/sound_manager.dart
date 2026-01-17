@@ -107,9 +107,8 @@ class SoundManager {
       final player = _tapPlayers[_currentTapPlayerIndex];
       _currentTapPlayerIndex = (_currentTapPlayerIndex + 1) % _tapPlayers.length;
 
-      // 即座に再生
-      player.seek(Duration.zero);
-      player.play();
+      // 即座に再生（awaitを使わず非同期で実行）
+      player.seek(Duration.zero).then((_) => player.play());
     } catch (e) {
       // エラーを無視
     }
@@ -122,9 +121,8 @@ class SoundManager {
       final player = _mergePlayers[_currentMergePlayerIndex];
       _currentMergePlayerIndex = (_currentMergePlayerIndex + 1) % _mergePlayers.length;
 
-      // 即座に再生
-      player.seek(Duration.zero);
-      player.play();
+      // 即座に再生（awaitを使わず非同期で実行）
+      player.seek(Duration.zero).then((_) => player.play());
     } catch (e) {
       // エラーを無視
     }
@@ -176,9 +174,8 @@ class SoundManager {
       final player = _buttonPlayers[_currentButtonPlayerIndex];
       _currentButtonPlayerIndex = (_currentButtonPlayerIndex + 1) % _buttonPlayers.length;
 
-      // 即座に再生
-      player.seek(Duration.zero);
-      player.play();
+      // 即座に再生（awaitを使わず非同期で実行）
+      player.seek(Duration.zero).then((_) => player.play());
     } catch (e) {
       // エラーを無視
     }

@@ -9,6 +9,7 @@ import '../managers/ad_manager.dart';
 import '../managers/score_manager.dart';
 import '../managers/player_manager.dart';
 import '../managers/skin_manager.dart';
+import '../managers/language_manager.dart';
 import '../screens/ranking_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/rules_screen.dart';
@@ -429,6 +430,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         score: game.score,
         isNewRecord: isNewRecord,
         onRestart: _restartGame,
+        boardSize: game.boardSize,
       ),
     );
   }
@@ -445,9 +447,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             width: 2,
           ),
         ),
-        title: const Text(
-          '設定',
-          style: TextStyle(
+        title: Text(
+          LanguageManager().translate('settings_title'),
+          style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
             fontSize: 24,
@@ -460,7 +462,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               ListTile(
                 leading: const Icon(Icons.person, color: Colors.white),
                 title: Text(
-                  'プレイヤー名: $_playerName',
+                  '${LanguageManager().translate('player_name')}: $_playerName',
                   style: const TextStyle(color: Colors.white),
                 ),
               ),
@@ -472,9 +474,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     children: [
                       const Icon(Icons.volume_up, color: Colors.white, size: 20),
                       const SizedBox(width: 12),
-                      const Text(
-                        '音量',
-                        style: TextStyle(
+                      Text(
+                        LanguageManager().translate('volume'),
+                        style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
@@ -513,6 +515,136 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ],
               ),
               const SizedBox(height: 10),
+              // 言語切り替えボタン
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    _soundManager.playButton();
+                    // 言語選択ダイアログを表示
+                    showDialog(
+                      context: context,
+                      builder: (dialogContext) => AlertDialog(
+                        backgroundColor: const Color(0xFF1A1A2E),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(20),
+                          side: BorderSide(
+                            color: GameColors.accentPink.withValues(alpha: 0.3),
+                            width: 2,
+                          ),
+                        ),
+                        title: Text(
+                          LanguageManager().translate('language_select'),
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 20,
+                          ),
+                        ),
+                        content: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: AppLanguage.values.map((language) {
+                            final isSelected = LanguageManager().currentLanguage == language;
+                            return Padding(
+                              padding: const EdgeInsets.symmetric(vertical: 4),
+                              child: Material(
+                                color: Colors.transparent,
+                                child: InkWell(
+                                  onTap: () {
+                                    _soundManager.playButton();
+                                    setDialogState(() {
+                                      LanguageManager().setLanguage(language);
+                                    });
+                                    setState(() {}); // メイン画面も更新
+                                    Navigator.pop(dialogContext);
+                                  },
+                                  borderRadius: BorderRadius.circular(12),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                      horizontal: 20,
+                                      vertical: 16,
+                                    ),
+                                    decoration: BoxDecoration(
+                                      color: isSelected
+                                          ? GameColors.accentPinkLight.withValues(alpha: 0.2)
+                                          : Colors.white.withValues(alpha: 0.05),
+                                      borderRadius: BorderRadius.circular(12),
+                                      border: Border.all(
+                                        color: isSelected
+                                            ? GameColors.accentPinkLight
+                                            : Colors.white.withValues(alpha: 0.2),
+                                        width: isSelected ? 2 : 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      children: [
+                                        Icon(
+                                          isSelected ? Icons.check_circle : Icons.language,
+                                          color: isSelected
+                                              ? GameColors.accentPinkLight
+                                              : Colors.white70,
+                                          size: 24,
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          LanguageManager().getLanguageName(language),
+                                          style: TextStyle(
+                                            color: isSelected
+                                                ? GameColors.accentPinkLight
+                                                : Colors.white,
+                                            fontSize: 16,
+                                            fontWeight: isSelected
+                                                ? FontWeight.bold
+                                                : FontWeight.w500,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            );
+                          }).toList(),
+                        ),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: Text(
+                              LanguageManager().translate('close'),
+                              style: const TextStyle(
+                                color: GameColors.accentPink,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.language, color: Colors.white, size: 20),
+                  label: Text(
+                    '${LanguageManager().translate('language_setting')}: ${LanguageManager().getLanguageName(LanguageManager().currentLanguage)}',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w600,
+                      fontSize: 15,
+                    ),
+                  ),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.white.withValues(alpha: 0.15),
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      side: BorderSide(
+                        color: Colors.white.withValues(alpha: 0.3),
+                        width: 1,
+                      ),
+                    ),
+                    elevation: 0,
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
               SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
@@ -526,9 +658,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   );
                 },
                 icon: const Icon(Icons.menu_book, color: Colors.white, size: 20),
-                label: const Text(
-                  'ルール説明',
-                  style: TextStyle(
+                label: Text(
+                  LanguageManager().translate('rules_explanation'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
@@ -559,7 +691,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   AdManager().showInterstitialAd(
                     onAdClosed: () {
                       setState(() {
-                        game = GameModel(); // 新しいゲームを作成
+                        game = GameModel(boardSize: widget.boardSize); // 新しいゲームを作成（現在のボードサイズを維持）
                         lastMergedRow = null;
                         lastMergedCol = null;
                         lastAddedScore = 0;
@@ -571,9 +703,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   );
                 },
                 icon: const Icon(Icons.replay, color: Colors.white, size: 20),
-                label: const Text(
-                  'リプレイ',
-                  style: TextStyle(
+                label: Text(
+                  LanguageManager().translate('replay'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
@@ -612,9 +744,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   );
                 },
                 icon: const Icon(Icons.home, color: Colors.white, size: 20),
-                label: const Text(
-                  'ホームに戻る',
-                  style: TextStyle(
+                label: Text(
+                  LanguageManager().translate('back_to_home'),
+                  style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
                     fontSize: 15,
@@ -640,9 +772,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text(
-              '閉じる',
-              style: TextStyle(
+            child: Text(
+              LanguageManager().translate('close'),
+              style: const TextStyle(
                 color: GameColors.accentPink,
                 fontWeight: FontWeight.bold,
               ),
@@ -841,17 +973,21 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  '${ScoreManager().bestScore}',
+                  '${ScoreManager().getBestScore(widget.boardSize)}',
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w900,
-                    color: Colors.white.withValues(alpha: 0.8),
-                    shadows: const [
-                      Shadow(
-                        color: GameColors.accentPinkLight,
-                        blurRadius: 10,
-                      ),
-                    ],
+                    color: ScoreManager().getBestScore(widget.boardSize) == 0
+                        ? Colors.white
+                        : GameColors.accentPinkLight,
+                    shadows: ScoreManager().getBestScore(widget.boardSize) == 0
+                        ? null
+                        : const [
+                            Shadow(
+                              color: GameColors.accentPinkLight,
+                              blurRadius: 10,
+                            ),
+                          ],
                   ),
                 ),
               ],
@@ -924,9 +1060,9 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          _buildNextTile(game.currentNumber, '現在', isLarge: true),
+          _buildNextTile(game.currentNumber, LanguageManager().translate('current'), isLarge: true),
           const SizedBox(width: 16),
-          _buildNextTile(game.nextNumber, '次', isLarge: false),
+          _buildNextTile(game.nextNumber, LanguageManager().translate('next'), isLarge: false),
           const SizedBox(width: 16),
           // 入れ替えボタン
           _buildSwapButton(),
@@ -1125,11 +1261,13 @@ class _GameOverDialog extends StatefulWidget {
   final int score;
   final bool isNewRecord;
   final VoidCallback onRestart;
+  final int boardSize;
 
   const _GameOverDialog({
     required this.score,
     required this.isNewRecord,
     required this.onRestart,
+    required this.boardSize,
   });
 
   @override
@@ -1140,7 +1278,7 @@ class _GameOverDialogState extends State<_GameOverDialog> {
   void _viewRankings() {
     Navigator.of(context).push(
       MaterialPageRoute(
-        builder: (context) => const RankingScreen(),
+        builder: (context) => RankingScreen(initialBoardSize: widget.boardSize),
       ),
     );
   }
@@ -1188,7 +1326,7 @@ class _GameOverDialogState extends State<_GameOverDialog> {
         ),
         const SizedBox(height: 16),
         Text(
-          widget.isNewRecord ? 'NEW RECORD!' : 'GAME OVER',
+          widget.isNewRecord ? LanguageManager().translate('new_record') : LanguageManager().translate('game_over'),
           style: TextStyle(
             fontSize: 28,
             fontWeight: FontWeight.w900,
@@ -1238,14 +1376,14 @@ class _GameOverDialogState extends State<_GameOverDialog> {
                 color: GameColors.accentPinkLight.withValues(alpha: 0.5),
               ),
             ),
-            child: const Row(
+            child: Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.celebration, color: GameColors.accentPinkLight),
-                SizedBox(width: 8),
+                const Icon(Icons.celebration, color: GameColors.accentPinkLight),
+                const SizedBox(width: 8),
                 Text(
-                  '🎉 新記録達成！',
-                  style: TextStyle(
+                  LanguageManager().translate('new_record_achieved'),
+                  style: const TextStyle(
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                     color: GameColors.accentPinkLight,
@@ -1255,9 +1393,9 @@ class _GameOverDialogState extends State<_GameOverDialog> {
             ),
           ),
           const SizedBox(height: 8),
-          const Text(
-            'ランキングに自動送信されました',
-            style: TextStyle(
+          Text(
+            LanguageManager().translate('sent_to_ranking'),
+            style: const TextStyle(
               fontSize: 12,
               color: Colors.white60,
             ),
@@ -1291,9 +1429,9 @@ class _GameOverDialogState extends State<_GameOverDialog> {
               borderRadius: BorderRadius.circular(12),
             ),
           ),
-          child: const Text(
-            'ランキングを見る',
-            style: TextStyle(
+          child: Text(
+            LanguageManager().translate('view_ranking'),
+            style: const TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w700,
               letterSpacing: 1,
@@ -1318,9 +1456,9 @@ class _GameOverDialogState extends State<_GameOverDialog> {
             ),
             elevation: 0,
           ),
-          child: const Text(
-            'RESTART',
-            style: TextStyle(
+          child: Text(
+            LanguageManager().translate('restart'),
+            style: const TextStyle(
               fontSize: 18,
               fontWeight: FontWeight.w900,
               letterSpacing: 2,
