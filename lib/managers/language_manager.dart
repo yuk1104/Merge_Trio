@@ -67,6 +67,8 @@ class LanguageManager extends ChangeNotifier {
     'change_skin': 'スキン変更',
     'tile_skin': 'タイルスキン',
     'select_skin': 'お好みのスキンを選択してください',
+    'locked': 'ロック中',
+    'unlock_skin_info': 'タップしてアンロック方法を確認',
 
     // ボードサイズ選択
     'standard': 'スタンダード',
@@ -132,6 +134,8 @@ class LanguageManager extends ChangeNotifier {
     'change_skin': 'Change Skin',
     'tile_skin': 'Tile Skin',
     'select_skin': 'Please select your preferred skin',
+    'locked': 'Locked',
+    'unlock_skin_info': 'Tap to see how to unlock',
 
     // ボードサイズ選択
     'standard': 'Standard',
