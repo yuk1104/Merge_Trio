@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:share_plus/share_plus.dart';
 import '../managers/skin_manager.dart';
 import '../managers/invite_manager.dart';
 import '../managers/language_manager.dart';
@@ -41,6 +42,13 @@ class _UnlockNeonDialogState extends State<UnlockNeonDialog> {
     if (mounted) {
       setState(() {});
     }
+  }
+
+  void _shareInviteCode() async {
+    final appStoreUrl = 'https://apps.apple.com/jp/app/%E3%83%9E%E3%83%BC%E3%82%B8%E3%83%88%E3%83%AA%E3%82%AA-merge-trio/id6755914647';
+    final languageCode = LanguageManager().isJapanese ? 'ja' : 'en';
+    final message = _inviteManager.getInviteMessage(appStoreUrl, languageCode);
+    await Share.share(message);
   }
 
   @override
@@ -143,6 +151,32 @@ class _UnlockNeonDialogState extends State<UnlockNeonDialog> {
                     ),
                   ),
                 ],
+              ),
+            ),
+            const SizedBox(height: 16),
+
+            // 友達を招待ボタン
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: _shareInviteCode,
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFFF00FF),
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  elevation: 0,
+                ),
+                icon: const Icon(Icons.share, size: 20),
+                label: Text(
+                  LanguageManager().translate('invite_friends'),
+                  style: const TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ),
             const SizedBox(height: 20),

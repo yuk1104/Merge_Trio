@@ -258,23 +258,23 @@ class SkinManager extends ChangeNotifier {
   List<Color> _getNeonGradient(int number) {
     switch (number) {
       case 1:
-        return [const Color(0xFFFFFF00), const Color(0xFFFFDD00)]; // ネオンイエロー
+        return [const Color(0xFFFFFF33), const Color(0xFFFFCC00)]; // ネオンイエロー - より深みのある黄色
       case 2:
-        return [const Color(0xFFFF6600), const Color(0xFFFF4400)]; // ネオンオレンジ
+        return [const Color(0xFFFF7700), const Color(0xFFFF3300)]; // ネオンオレンジ - より明るく鮮やか
       case 3:
-        return [const Color(0xFFFF0080), const Color(0xFFFF0066)]; // ネオンピンク
+        return [const Color(0xFFFF0099), const Color(0xFFFF0055)]; // ネオンピンク - より鮮やかなマゼンタピンク
       case 4:
-        return [const Color(0xFFBB00FF), const Color(0xFF9900FF)]; // ネオンパープル
+        return [const Color(0xFFCC00FF), const Color(0xFF9900FF)]; // ネオンパープル - より深い紫
       case 5:
-        return [const Color(0xFF00D4FF), const Color(0xFF00B8FF)]; // ネオンシアン
+        return [const Color(0xFF00EEFF), const Color(0xFF00AAFF)]; // ネオンシアン - より明るく電気的
       case 6:
-        return [const Color(0xFF00FF88), const Color(0xFF00FF66)]; // ネオングリーン
+        return [const Color(0xFF00FF99), const Color(0xFF00FF55)]; // ネオングリーン - より鮮やかなエメラルド
       case 7:
-        return [const Color(0xFFFF3366), const Color(0xFFFF1155)]; // ネオンレッド
+        return [const Color(0xFFFF3377), const Color(0xFFFF0044)]; // ネオンレッド - より鮮やかな赤ピンク
       case 8:
-        return [const Color(0xFF4D4DFF), const Color(0xFF3333FF)]; // ネオンブルー
+        return [const Color(0xFF5555FF), const Color(0xFF3333FF)]; // ネオンブルー - より明るい電気ブルー
       case 9:
-        return [const Color(0xFFFF00FF), const Color(0xFFDD00DD)]; // ネオンマゼンタ
+        return [const Color(0xFFFF00FF), const Color(0xFFCC00CC)]; // ネオンマゼンタ - より深みのあるマゼンタ
       default:
         return [const Color(0xFF333333), const Color(0xFF222222)];
     }

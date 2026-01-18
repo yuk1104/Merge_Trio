@@ -99,23 +99,33 @@ class InviteManager extends ChangeNotifier {
         return false; // 無効なコード
       }
 
-      // トランザクションで招待数を増やす
-      int newCount = 0;
+      // トランザクションで相手と自分両方の招待数を増やす
+      final myDocRef = _firestore.collection('invite_codes').doc(_myInviteCode);
+
       await _firestore.runTransaction((transaction) async {
+        // 相手の招待コードのカウントを増やす
         final snapshot = await transaction.get(docRef);
         if (!snapshot.exists) {
           throw Exception('Code not found');
         }
-
         final currentCount = snapshot.data()?['inviteCount'] ?? 0;
-        newCount = currentCount + 1;
-        transaction.update(docRef, {'inviteCount': newCount});
+        transaction.update(docRef, {'inviteCount': currentCount + 1});
+
+        // 自分の招待コードのカウントも増やす（ボーナス）
+        final mySnapshot = await transaction.get(myDocRef);
+        if (mySnapshot.exists) {
+          final myCurrentCount = mySnapshot.data()?['inviteCount'] ?? 0;
+          transaction.update(myDocRef, {'inviteCount': myCurrentCount + 1});
+        }
       });
 
       // ローカルに保存
       _usedInviteCode = code;
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_usedInviteCodeKey, code);
+
+      // 自分の招待カウントを同期
+      await _syncInviteCount();
 
       notifyListeners();
       return true;
