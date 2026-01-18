@@ -13,6 +13,8 @@ import 'managers/player_manager.dart';
 import 'managers/sound_manager.dart';
 import 'managers/skin_manager.dart';
 import 'managers/language_manager.dart';
+import 'managers/invite_manager.dart';
+import 'screens/invite_code_input_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -52,6 +54,9 @@ void main() async {
 
   // 言語マネージャーを初期化
   await LanguageManager().initialize();
+
+  // 招待マネージャーを初期化
+  await InviteManager().initialize();
 
   // サウンドマネージャーを初期化（効果音の準備）
   final soundManager = SoundManager();

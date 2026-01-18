@@ -4,6 +4,7 @@ import '../managers/sound_manager.dart';
 import '../managers/language_manager.dart';
 import '../widgets/game_colors.dart';
 import 'unlock_pastel_dialog.dart';
+import 'unlock_neon_dialog.dart';
 
 class SkinSelectionScreen extends StatefulWidget {
   const SkinSelectionScreen({super.key});
@@ -122,7 +123,8 @@ class _SkinSelectionScreenState extends State<SkinSelectionScreen> {
 
   Widget _buildSkinCard(TileSkin skin) {
     final isSelected = skin == _skinManager.currentSkin;
-    final isLocked = skin == TileSkin.pastel && !_skinManager.isPastelUnlocked;
+    final isLocked = (skin == TileSkin.pastel && !_skinManager.isPastelUnlocked) ||
+                     (skin == TileSkin.neon && !_skinManager.isNeonUnlocked);
 
     return Container(
       margin: const EdgeInsets.only(bottom: 20),
@@ -151,12 +153,19 @@ class _SkinSelectionScreenState extends State<SkinSelectionScreen> {
           onTap: () async {
             _soundManager.playButton();
 
-            // パステルがロックされている場合はアンロックダイアログを表示
+            // ロックされている場合は対応するアンロックダイアログを表示
             if (isLocked) {
-              showDialog(
-                context: context,
-                builder: (context) => const UnlockPastelDialog(),
-              );
+              if (skin == TileSkin.pastel) {
+                showDialog(
+                  context: context,
+                  builder: (context) => const UnlockPastelDialog(),
+                );
+              } else if (skin == TileSkin.neon) {
+                showDialog(
+                  context: context,
+                  builder: (context) => const UnlockNeonDialog(),
+                );
+              }
               return;
             }
 

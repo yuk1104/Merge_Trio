@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:math';
 import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
+import 'package:share_plus/share_plus.dart';
 import '../models/game_model.dart';
 import '../models/particle.dart';
 import '../managers/sound_manager.dart';
@@ -10,6 +11,7 @@ import '../managers/score_manager.dart';
 import '../managers/player_manager.dart';
 import '../managers/skin_manager.dart';
 import '../managers/language_manager.dart';
+import '../managers/invite_manager.dart';
 import '../screens/ranking_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/rules_screen.dart';
@@ -435,6 +437,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     );
   }
 
+  void _shareApp() async {
+    // InviteManagerから招待メッセージを取得
+    final inviteManager = InviteManager();
+    final appStoreUrl = 'https://apps.apple.com/jp/app/%E3%83%9E%E3%83%BC%E3%82%B8%E3%83%88%E3%83%AA%E3%82%AA-merge-trio/id6755914647';
+    final languageCode = LanguageManager().isJapanese ? 'ja' : 'en';
+    final message = inviteManager.getInviteMessage(appStoreUrl, languageCode);
+
+    await Share.share(message);
+  }
+
   void _showSettingsDialog() {
     showDialog(
       context: context,
@@ -705,6 +717,37 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 icon: const Icon(Icons.replay, color: Colors.white, size: 20),
                 label: Text(
                   LanguageManager().translate('replay'),
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.white.withValues(alpha: 0.15),
+                  padding: const EdgeInsets.symmetric(vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    side: BorderSide(
+                      color: Colors.white.withValues(alpha: 0.3),
+                      width: 1,
+                    ),
+                  ),
+                  elevation: 0,
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton.icon(
+                onPressed: () {
+                  _soundManager.playButton();
+                  _shareApp();
+                },
+                icon: const Icon(Icons.share, color: Colors.white, size: 20),
+                label: Text(
+                  LanguageManager().translate('share_app'),
                   style: const TextStyle(
                     color: Colors.white,
                     fontWeight: FontWeight.w600,
