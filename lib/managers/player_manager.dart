@@ -88,18 +88,27 @@ class PlayerManager {
     try {
       print('Registering player: $name');
 
+      // 現在のユーザーIDを取得
+      final auth = FirebaseAuth.instance;
+      final userId = auth.currentUser?.uid;
+
+      if (userId == null) {
+        print('No user ID found');
+        return false;
+      }
+
       // 重複チェック
       final isAvailable = await isNameAvailable(name);
       print('Name available: $isAvailable');
 
       if (!isAvailable) {
-        print('Name already taken');
-        return false;
-      }
+        print('Name already taken - this might be from a previous installation');
+        print('Deleting old data for name: $name');
 
-      // 現在のユーザーIDを取得
-      final auth = FirebaseAuth.instance;
-      final userId = auth.currentUser?.uid;
+        // 古いデータを削除（再インストール対応）
+        await _deleteOldDataByName(name);
+        print('Old data deleted');
+      }
 
       // Firestoreに登録（userIdも保存）
       print('Adding to Firestore...');
@@ -120,40 +129,53 @@ class PlayerManager {
     }
   }
 
+  // 古いデータを削除（名前ベース）
+  Future<void> _deleteOldDataByName(String playerName) async {
+    try {
+      // leaderboardから削除
+      await _deleteFromLeaderboard('leaderboard', playerName);
+
+      // leaderboard_5x5から削除
+      await _deleteFromLeaderboard('leaderboard_5x5', playerName);
+
+      // playersから削除
+      final querySnapshot = await _firestore
+          .collection('players')
+          .where('name', isEqualTo: playerName)
+          .get();
+
+      for (var doc in querySnapshot.docs) {
+        await doc.reference.delete();
+        print('Deleted old player data: ${doc.id}');
+      }
+    } catch (e) {
+      print('Error deleting old data: $e');
+    }
+  }
+
   // 開発用: プレイヤーデータをリセット
   void clearPlayerData() {
     _playerName = null;
   }
 
-  // leaderboardコレクションから削除（UserIdと名前の両方で試行）
-  Future<void> _deleteFromLeaderboard(String collectionName, String userId, String? playerName) async {
+  // leaderboardコレクションから削除（プレイヤー名で削除）
+  Future<void> _deleteFromLeaderboard(String collectionName, String playerName) async {
     try {
-      print('Attempting to delete from $collectionName with userId: $userId');
+      print('Attempting to delete from $collectionName with playerName: $playerName');
 
-      // まずUserIdで削除を試みる
-      await _firestore.collection(collectionName).doc(userId).delete();
-      print('Successfully deleted from $collectionName by userId');
-    } catch (e) {
-      print('Could not delete by userId from $collectionName: $e');
-    }
+      // プレイヤー名で検索して削除
+      final querySnapshot = await _firestore
+          .collection(collectionName)
+          .where('playerName', isEqualTo: playerName)
+          .get();
 
-    // 名前でも検索して削除（UserIdが異なる古いデータ用）
-    if (playerName != null && playerName.isNotEmpty) {
-      try {
-        print('Also searching $collectionName by playerName: $playerName');
-        final querySnapshot = await _firestore
-            .collection(collectionName)
-            .where('playerName', isEqualTo: playerName)
-            .get();
-
-        print('Found ${querySnapshot.docs.length} documents in $collectionName with playerName');
-        for (var doc in querySnapshot.docs) {
-          await doc.reference.delete();
-          print('Deleted from $collectionName (by name): ${doc.id}');
-        }
-      } catch (e) {
-        print('Error deleting by name from $collectionName: $e');
+      print('Found ${querySnapshot.docs.length} documents in $collectionName with playerName');
+      for (var doc in querySnapshot.docs) {
+        await doc.reference.delete();
+        print('Deleted from $collectionName: ${doc.id}');
       }
+    } catch (e) {
+      print('Error deleting from $collectionName: $e');
     }
   }
 
@@ -177,61 +199,34 @@ class PlayerManager {
       final playerName = await getPlayerName();
       print('Player name: $playerName');
 
-      // 1. Firestoreのleaderboard（4×4）から削除
-      await _deleteFromLeaderboard('leaderboard', userId, playerName);
+      if (playerName == null || playerName.isEmpty) {
+        print('No player name found');
+        return false;
+      }
 
-      // 2. Firestoreのleaderboard_5x5から削除
-      await _deleteFromLeaderboard('leaderboard_5x5', userId, playerName);
+      // 1. Firestoreのleaderboard（4×4）から削除（プレイヤー名で）
+      await _deleteFromLeaderboard('leaderboard', playerName);
 
-      // 2. Firestoreのplayersから削除（userIdで検索、見つからなければ名前でも検索）
+      // 2. Firestoreのleaderboard_5x5から削除（プレイヤー名で）
+      await _deleteFromLeaderboard('leaderboard_5x5', playerName);
+
+      // 3. Firestoreのplayersから削除（プレイヤー名で検索）
       try {
         print('Attempting to delete from players collection...');
-        int deletedCount = 0;
 
-        // まずuserIdで検索（新しいデータ）
-        var querySnapshot = await _firestore
+        final querySnapshot = await _firestore
             .collection('players')
-            .where('userId', isEqualTo: userId)
+            .where('name', isEqualTo: playerName)
             .get();
 
-        if (querySnapshot.docs.isNotEmpty) {
-          print('Found ${querySnapshot.docs.length} documents with userId');
-          for (var doc in querySnapshot.docs) {
-            await doc.reference.delete();
-            deletedCount++;
-            print('Deleted from players (by userId): ${doc.id}');
-          }
+        print('Found ${querySnapshot.docs.length} documents with playerName in players collection');
+        for (var doc in querySnapshot.docs) {
+          await doc.reference.delete();
+          print('Deleted from players: ${doc.id}');
         }
 
-        // 名前でも検索（既存の古いデータ + 念のため）
-        final playerName = await getPlayerName();
-        if (playerName != null && playerName.isNotEmpty) {
-          print('Also searching by name: $playerName');
-          final nameQuerySnapshot = await _firestore
-              .collection('players')
-              .where('name', isEqualTo: playerName)
-              .get();
-
-          print('Found ${nameQuerySnapshot.docs.length} documents with name');
-          for (var doc in nameQuerySnapshot.docs) {
-            // userIdで既に削除済みでないか確認
-            final docData = doc.data();
-            final docUserId = docData['userId'];
-            if (docUserId != userId) {
-              // 別のuserIdか、userIdがないドキュメント（古いデータ）を削除
-              await doc.reference.delete();
-              deletedCount++;
-              print('Deleted from players (by name): ${doc.id}');
-            } else {
-              print('Skipped ${doc.id} (already deleted by userId)');
-            }
-          }
-        }
-
-        if (deletedCount == 0) {
+        if (querySnapshot.docs.isEmpty) {
           print('Warning: No player documents found to delete');
-        } else {
-          print('Total deleted from players: $deletedCount documents');
         }
       } catch (e, stackTrace) {
         print('Error deleting from players: $e');

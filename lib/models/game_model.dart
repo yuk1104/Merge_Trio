@@ -30,13 +30,15 @@ class GameModel {
   }
 
   int _generateRandomNumber() {
+    // 8以上のタイルは次のタイルとして出現しない
+    // 1-7のみを生成
     final rand = _random.nextDouble();
     if (rand < 0.70) {
-      return _random.nextInt(3) + 1;
+      return _random.nextInt(3) + 1; // 1, 2, 3
     } else if (rand < 0.95) {
-      return _random.nextInt(2) + 4;
+      return _random.nextInt(2) + 4; // 4, 5
     } else {
-      return _random.nextInt(2) + 6;
+      return _random.nextInt(2) + 6; // 6, 7
     }
   }
 

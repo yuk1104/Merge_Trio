@@ -11,7 +11,6 @@ import '../managers/score_manager.dart';
 import '../managers/player_manager.dart';
 import '../managers/skin_manager.dart';
 import '../managers/language_manager.dart';
-import '../managers/invite_manager.dart';
 import '../screens/ranking_screen.dart';
 import '../screens/home_screen.dart';
 import '../screens/rules_screen.dart';
@@ -438,11 +437,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   }
 
   void _shareApp() async {
-    // InviteManagerから招待メッセージを取得
-    final inviteManager = InviteManager();
     final appStoreUrl = 'https://apps.apple.com/jp/app/%E3%83%9E%E3%83%BC%E3%82%B8%E3%83%88%E3%83%AA%E3%82%AA-merge-trio/id6755914647';
-    final languageCode = LanguageManager().isJapanese ? 'ja' : 'en';
-    final message = inviteManager.getInviteMessage(appStoreUrl, languageCode);
+    final isJapanese = LanguageManager().isJapanese;
+
+    final message = isJapanese
+        ? 'マージトリオ - 数字パズルゲーム\n\n同じ数字のタイルを3つ揃えて消していく、シンプルだけど奥深いパズルゲーム！\n\n$appStoreUrl'
+        : 'Merge Trio - Number Puzzle Game\n\nA simple yet addictive puzzle game where you match three tiles with the same number!\n\n$appStoreUrl';
 
     await Share.share(message);
   }

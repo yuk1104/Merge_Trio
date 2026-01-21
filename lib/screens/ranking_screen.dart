@@ -4,8 +4,6 @@ import '../managers/sound_manager.dart';
 import '../managers/language_manager.dart';
 import '../widgets/game_colors.dart';
 
-enum RankingType { allTime, weekly }
-
 class RankingScreen extends StatefulWidget {
   final int initialBoardSize;
 
@@ -20,8 +18,6 @@ class _RankingScreenState extends State<RankingScreen> {
   List<RankingEntry> _rankings = [];
   bool _isLoading = true;
   late int _selectedBoardSize; // 4x4 or 5x5
-  RankingType _rankingType = RankingType.allTime;
-  DateTime _currentWeek = DateTime.now();
 
   @override
   void initState() {
@@ -49,13 +45,7 @@ class _RankingScreenState extends State<RankingScreen> {
       _isLoading = true;
     });
 
-    final rankings = _rankingType == RankingType.allTime
-        ? await RankingManager().getTopRankings(limit: 100, boardSize: _selectedBoardSize)
-        : await RankingManager().getWeeklyRankings(
-            limit: 100,
-            boardSize: _selectedBoardSize,
-            targetDate: _currentWeek,
-          );
+    final rankings = await RankingManager().getTopRankings(limit: 100, boardSize: _selectedBoardSize);
 
     if (mounted) {
       setState(() {
@@ -74,17 +64,6 @@ class _RankingScreenState extends State<RankingScreen> {
     }
   }
 
-  void _switchRankingType(RankingType type) {
-    if (_rankingType != type) {
-      setState(() {
-        _rankingType = type;
-        if (type == RankingType.weekly) {
-          _currentWeek = DateTime.now();
-        }
-      });
-      _loadRankings();
-    }
-  }
 
 
   @override
@@ -98,7 +77,6 @@ class _RankingScreenState extends State<RankingScreen> {
           child: Column(
             children: [
               _buildHeader(),
-              _buildRankingTypeToggle(),
               _buildBoardSizeToggle(),
               Expanded(
                 child: _isLoading
@@ -153,47 +131,6 @@ class _RankingScreenState extends State<RankingScreen> {
       ),
     );
   }
-
-  Widget _buildRankingTypeToggle() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Container(
-        decoration: BoxDecoration(
-          color: Colors.black.withValues(alpha: 0.3),
-          borderRadius: BorderRadius.circular(25),
-          border: Border.all(
-            color: Colors.white.withValues(alpha: 0.1),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: _buildToggleButton(
-                label: LanguageManager().translate('all_time'),
-                isSelected: _rankingType == RankingType.allTime,
-                onTap: () {
-                  _soundManager.playButton();
-                  _switchRankingType(RankingType.allTime);
-                },
-              ),
-            ),
-            Expanded(
-              child: _buildToggleButton(
-                label: LanguageManager().translate('weekly'),
-                isSelected: _rankingType == RankingType.weekly,
-                onTap: () {
-                  _soundManager.playButton();
-                  _switchRankingType(RankingType.weekly);
-                },
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
 
   Widget _buildBoardSizeToggle() {
     return Padding(
