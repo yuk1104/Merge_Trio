@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'invite_manager.dart';
+import './score_manager.dart';
 
 enum TileSkin {
   classic,
@@ -18,28 +18,25 @@ class SkinManager extends ChangeNotifier {
   static const String _rewardAdCountKey = 'reward_ad_count';
   static const String _pastelUnlockedKey = 'pastel_unlocked';
   static const String _neonUnlockedKey = 'neon_unlocked';
-  static const String _shareCountKey = 'share_count';
 
   TileSkin _currentSkin = TileSkin.classic;
   int _playCount = 0;
   int _rewardAdCount = 0;
   bool _pastelUnlocked = false;
   bool _neonUnlocked = false;
-  int _shareCount = 0;
 
   TileSkin get currentSkin => _currentSkin;
   int get playCount => _playCount;
   int get rewardAdCount => _rewardAdCount;
   bool get isPastelUnlocked => _pastelUnlocked;
   bool get isNeonUnlocked => _neonUnlocked;
-  int get shareCount => _shareCount;
 
   // パステル解放条件
   static const int requiredPlayCount = 10;
   static const int requiredRewardAdCount = 3;
 
-  // ネオン解放条件
-  static const int requiredShareCount = 3;
+  // ネオン解放条件: 4×4のベストスコア200以上
+  static const int requiredBestScore = 200;
 
   // テスト用: trueにするとパステルが常に解放される
   static const bool debugUnlockPastel = false;
@@ -57,7 +54,6 @@ class SkinManager extends ChangeNotifier {
       _rewardAdCount = prefs.getInt(_rewardAdCountKey) ?? 0;
       _pastelUnlocked = prefs.getBool(_pastelUnlockedKey) ?? false;
       _neonUnlocked = prefs.getBool(_neonUnlockedKey) ?? false;
-      _shareCount = prefs.getInt(_shareCountKey) ?? 0;
 
       // テストモードの場合は常に解放
       if (debugUnlockPastel) {
@@ -84,24 +80,15 @@ class SkinManager extends ChangeNotifier {
     }
   }
 
-  // ネオン解放チェック（InviteManagerの招待数に基づく）
-  Future<void> checkAndUnlockNeon() async {
+  // ネオン解放チェック（ベストスコアに基づく）
+  void _checkAndUnlockNeon() {
     if (_neonUnlocked) return;
 
-    // InviteManagerから招待数を取得
-    final inviteManager = InviteManager();
-    await inviteManager.refreshInviteCount();
+    // ScoreManagerから4×4のベストスコアを取得
+    final scoreManager = ScoreManager();
+    final bestScore4x4 = scoreManager.getBestScore(4);
 
-    if (inviteManager.inviteCount >= requiredShareCount) {
-      _neonUnlocked = true;
-      await _saveNeonUnlocked();
-      notifyListeners();
-    }
-  }
-
-  // 内部用のネオン解放チェック（後方互換性のため残す）
-  void _checkAndUnlockNeon() {
-    if (!_neonUnlocked && _shareCount >= requiredShareCount) {
+    if (bestScore4x4 >= requiredBestScore) {
       _neonUnlocked = true;
       _saveNeonUnlocked();
       notifyListeners();
@@ -134,18 +121,6 @@ class SkinManager extends ChangeNotifier {
     }
   }
 
-  // 共有回数を増やす
-  Future<void> incrementShareCount() async {
-    _shareCount++;
-    try {
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setInt(_shareCountKey, _shareCount);
-      _checkAndUnlockNeon();
-      notifyListeners();
-    } catch (e) {
-      // エラーを無視
-    }
-  }
 
   // パステル解放状態を保存
   Future<void> _savePastelUnlocked() async {

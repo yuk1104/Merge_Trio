@@ -81,8 +81,13 @@ class ScoreManager {
 
       if (playerName != null && playerName.isNotEmpty) {
         print('[ScoreManager] Submitting to RankingManager...');
+        // 通常ランキングに送信
         await RankingManager().submitScore(playerName, score, boardSize);
-        print('[ScoreManager] Ranking submission completed successfully');
+        print('[ScoreManager] All-time ranking submission completed successfully');
+
+        // 週間ランキングにも送信
+        await RankingManager().submitWeeklyScore(playerName, score, boardSize);
+        print('[ScoreManager] Weekly ranking submission completed successfully');
       } else {
         print('[ScoreManager] Player name is null or empty, skipping ranking submission');
       }

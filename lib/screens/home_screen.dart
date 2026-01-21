@@ -1,11 +1,9 @@
 import 'package:flutter/material.dart';
-import 'game_screen.dart';
 import 'ranking_screen.dart';
 import 'board_size_selection_screen.dart';
 import 'skin_selection_screen.dart';
 import '../managers/sound_manager.dart';
 import '../managers/language_manager.dart';
-import '../widgets/game_colors.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

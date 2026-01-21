@@ -1,10 +1,8 @@
 import 'package:flutter/material.dart';
 import '../managers/player_manager.dart';
 import '../managers/sound_manager.dart';
-import '../managers/invite_manager.dart';
 import '../widgets/game_colors.dart';
 import 'home_screen.dart';
-import 'invite_code_input_screen.dart';
 
 class NameRegistrationScreen extends StatefulWidget {
   const NameRegistrationScreen({super.key});
@@ -62,21 +60,12 @@ class _NameRegistrationScreenState extends State<NameRegistrationScreen> {
       if (!mounted) return;
 
       if (success) {
-        // 登録成功：招待コードをまだ使っていなければ入力画面へ、使っていればホーム画面へ
-        final inviteManager = InviteManager();
-        if (!inviteManager.hasUsedInviteCode) {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const InviteCodeInputScreen(),
-            ),
-          );
-        } else {
-          Navigator.of(context).pushReplacement(
-            MaterialPageRoute(
-              builder: (context) => const HomeScreen(),
-            ),
-          );
-        }
+        // 登録成功：ホーム画面へ
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute(
+            builder: (context) => const HomeScreen(),
+          ),
+        );
       } else {
         setState(() {
           _errorMessage = 'この名前は既に使用されています';

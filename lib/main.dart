@@ -4,6 +4,7 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'firebase_options.dart';
 import 'screens/home_screen.dart';
 import 'screens/name_registration_screen.dart';
@@ -13,8 +14,6 @@ import 'managers/player_manager.dart';
 import 'managers/sound_manager.dart';
 import 'managers/skin_manager.dart';
 import 'managers/language_manager.dart';
-import 'managers/invite_manager.dart';
-import 'screens/invite_code_input_screen.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -55,11 +54,8 @@ void main() async {
   // 言語マネージャーを初期化
   await LanguageManager().initialize();
 
-  // 招待マネージャーを初期化
-  await InviteManager().initialize();
-
   // サウンドマネージャーを初期化（効果音の準備）
-  final soundManager = SoundManager();
+  SoundManager();
   // 初期化完了を待つために少し待機
   await Future.delayed(const Duration(milliseconds: 500));
 
@@ -73,13 +69,35 @@ Future<void> _initializeAuth() async {
   const customTokenKey = 'firebase_custom_token';
 
   try {
+    // SharedPreferencesからプレイヤー名を確認（アプリ再インストールの検出）
+    final prefs = await SharedPreferences.getInstance();
+    final playerName = prefs.getString('player_name');
+
     // 保存されているUIDを取得
     final savedUid = await storage.read(key: uidKey);
     debugPrint('Saved UID: $savedUid');
+    debugPrint('Player name in SharedPreferences: $playerName');
+
+    // アプリが再インストールされた場合（SharedPreferencesは消えるがSecureStorageは残る）
+    if (playerName == null && savedUid != null) {
+      debugPrint('App was reinstalled - clearing old UID from secure storage');
+      await storage.delete(key: uidKey);
+      await storage.delete(key: customTokenKey);
+      // 既存のFirebase Authセッションもクリア
+      if (FirebaseAuth.instance.currentUser != null) {
+        try {
+          await FirebaseAuth.instance.currentUser?.delete();
+        } catch (e) {
+          debugPrint('Error deleting old auth user: $e');
+        }
+        await FirebaseAuth.instance.signOut();
+      }
+    }
 
     if (FirebaseAuth.instance.currentUser == null) {
-      if (savedUid != null) {
-        // 保存されているUIDがある場合、Firestoreからデータを復元
+      // 再インストール後またはプレイヤー名がある場合のみ、古いUIDからデータを復元
+      if (savedUid != null && playerName != null) {
+        // 保存されているUIDがあり、かつプレイヤー名も登録済みの場合のみ復元
         debugPrint('Restoring data for UID: $savedUid');
         await _restoreUserData(savedUid);
       }

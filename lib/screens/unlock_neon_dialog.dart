@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:share_plus/share_plus.dart';
 import '../managers/skin_manager.dart';
-import '../managers/invite_manager.dart';
+import '../managers/score_manager.dart';
+import '../managers/sound_manager.dart';
 import '../managers/language_manager.dart';
 import '../widgets/game_colors.dart';
 
@@ -13,22 +13,19 @@ class UnlockNeonDialog extends StatefulWidget {
 }
 
 class _UnlockNeonDialogState extends State<UnlockNeonDialog> {
+  static final SoundManager _soundManager = SoundManager();
   final SkinManager _skinManager = SkinManager();
-  final InviteManager _inviteManager = InviteManager();
+  final ScoreManager _scoreManager = ScoreManager();
 
   @override
   void initState() {
     super.initState();
     _skinManager.addListener(_onSkinChanged);
-    _inviteManager.addListener(_onInviteChanged);
-    // 招待数を更新
-    _inviteManager.refreshInviteCount();
   }
 
   @override
   void dispose() {
     _skinManager.removeListener(_onSkinChanged);
-    _inviteManager.removeListener(_onInviteChanged);
     super.dispose();
   }
 
@@ -38,69 +35,38 @@ class _UnlockNeonDialogState extends State<UnlockNeonDialog> {
     }
   }
 
-  void _onInviteChanged() {
-    if (mounted) {
-      setState(() {});
-    }
-  }
-
-  void _shareInviteCode() async {
-    final appStoreUrl = 'https://apps.apple.com/jp/app/%E3%83%9E%E3%83%BC%E3%82%B8%E3%83%88%E3%83%AA%E3%82%AA-merge-trio/id6755914647';
-    final languageCode = LanguageManager().isJapanese ? 'ja' : 'en';
-    final message = _inviteManager.getInviteMessage(appStoreUrl, languageCode);
-    await Share.share(message);
-  }
-
   @override
   Widget build(BuildContext context) {
-    final currentCount = _inviteManager.inviteCount;
-    final required = SkinManager.requiredShareCount;
-    final progress = currentCount / required;
+    final bestScore4x4 = _scoreManager.getBestScore(4);
+    final required = SkinManager.requiredBestScore;
+    final isUnlocked = _skinManager.isNeonUnlocked;
 
     return AlertDialog(
       backgroundColor: const Color(0xFF1A1A2E),
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: const Color(0xFFFF00FF).withValues(alpha: 0.5),
+          color: GameColors.accentPink.withValues(alpha: 0.3),
           width: 2,
         ),
       ),
-      title: Column(
+      title: Row(
         children: [
-          // ネオンカラーのアイコン
-          Container(
-            width: 80,
-            height: 80,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFFFF00FF), Color(0xFF00D4FF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              shape: BoxShape.circle,
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFFFF00FF).withValues(alpha: 0.5),
-                  blurRadius: 20,
-                  spreadRadius: 5,
-                ),
-              ],
-            ),
-            child: const Icon(
-              Icons.auto_awesome,
-              color: Colors.white,
-              size: 40,
-            ),
+          Icon(
+            isUnlocked ? Icons.lock_open : Icons.lock,
+            color: isUnlocked ? Colors.green : GameColors.accentPink,
           ),
-          const SizedBox(height: 16),
-          Text(
-            LanguageManager().translate('neon'),
-            style: const TextStyle(
-              color: Colors.white,
-              fontWeight: FontWeight.bold,
-              fontSize: 28,
-              letterSpacing: 2,
+          const SizedBox(width: 12),
+          Expanded(
+            child: Text(
+              isUnlocked
+                  ? LanguageManager().translate('neon_unlocked')
+                  : '${LanguageManager().translate('neon')}${LanguageManager().translate('unlock_pastel')}',
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+                fontSize: 20,
+              ),
             ),
           ),
         ],
@@ -108,202 +74,62 @@ class _UnlockNeonDialogState extends State<UnlockNeonDialog> {
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 説明テキスト
-            Text(
-              LanguageManager().translate('unlock_neon_description'),
-              style: const TextStyle(
-                color: Colors.white70,
-                fontSize: 14,
-                height: 1.6,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 20),
-
-            // 招待コード表示
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(
-                  color: const Color(0xFFFF00FF).withValues(alpha: 0.3),
+            if (!isUnlocked) ...[
+              Text(
+                LanguageManager().translate('unlock_neon_description'),
+                style: const TextStyle(
+                  color: Colors.white70,
+                  fontSize: 14,
                 ),
               ),
-              child: Column(
-                children: [
-                  Text(
-                    LanguageManager().translate('my_invite_code'),
-                    style: const TextStyle(
-                      color: Colors.white70,
-                      fontSize: 12,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    _inviteManager.myInviteCode ?? '------',
-                    style: const TextStyle(
-                      color: Color(0xFFFF00FF),
-                      fontSize: 28,
-                      fontWeight: FontWeight.bold,
-                      letterSpacing: 4,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 16),
-
-            // 友達を招待ボタン
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: _shareInviteCode,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFFF00FF),
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  elevation: 0,
-                ),
-                icon: const Icon(Icons.share, size: 20),
-                label: Text(
-                  LanguageManager().translate('invite_friends'),
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-
-            // 進捗バー
-            Column(
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      LanguageManager().translate('share_progress'),
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                        fontSize: 14,
-                      ),
-                    ),
-                    Text(
-                      '$currentCount / $required',
-                      style: TextStyle(
-                        color: currentCount >= required
-                            ? const Color(0xFF00FF88)
-                            : Colors.white,
-                        fontWeight: FontWeight.bold,
-                        fontSize: 16,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: SizedBox(
-                    height: 20,
-                    child: LinearProgressIndicator(
-                      value: progress.clamp(0.0, 1.0),
-                      backgroundColor: Colors.white.withValues(alpha: 0.1),
-                      valueColor: AlwaysStoppedAnimation<Color>(
-                        currentCount >= required
-                            ? const Color(0xFF00FF88)
-                            : const Color(0xFFFF00FF),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 24),
-
-            // 解放条件
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.1),
-                ),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      Icon(
-                        Icons.share,
-                        color: const Color(0xFFFF00FF).withValues(alpha: 0.8),
-                        size: 20,
-                      ),
-                      const SizedBox(width: 8),
-                      Text(
-                        LanguageManager().translate('unlock_conditions'),
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontWeight: FontWeight.bold,
-                          fontSize: 14,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  _buildCondition(
-                    LanguageManager().translate('share_with_friends'),
-                    currentCount >= required,
-                  ),
-                ],
-              ),
-            ),
-
-            if (currentCount >= required) ...[
               const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      const Color(0xFF00FF88).withValues(alpha: 0.2),
-                      const Color(0xFF00D4FF).withValues(alpha: 0.2),
-                    ],
-                  ),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(
-                    color: const Color(0xFF00FF88),
-                    width: 2,
-                  ),
+
+              // スコアの進捗
+              _buildProgressItem(
+                icon: Icons.star,
+                title: LanguageManager().translate('your_best_score'),
+                progress: bestScore4x4,
+                goal: required,
+                isCompleted: isUnlocked,
+              ),
+            ] else ...[
+              Text(
+                '${LanguageManager().translate('neon')}スキンが使えるようになりました!',
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
                 ),
-                child: Row(
-                  children: [
-                    const Icon(
-                      Icons.check_circle,
-                      color: Color(0xFF00FF88),
-                      size: 24,
-                    ),
-                    const SizedBox(width: 12),
-                    Expanded(
-                      child: Text(
-                        LanguageManager().translate('neon_unlocked'),
-                        style: const TextStyle(
-                          color: Color(0xFF00FF88),
-                          fontWeight: FontWeight.bold,
-                          fontSize: 15,
+              ),
+              const SizedBox(height: 16),
+              // ネオンカラーのプレビュー
+              Row(
+                children: [1, 2, 3, 4, 5, 6, 7].map((number) {
+                  final colors = _skinManager.getTileGradient(number, TileSkin.neon);
+                  return Expanded(
+                    child: Container(
+                      height: 40,
+                      margin: const EdgeInsets.only(right: 4),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          colors: colors,
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
                         ),
+                        borderRadius: BorderRadius.circular(8),
+                        boxShadow: [
+                          BoxShadow(
+                            color: colors[0].withValues(alpha: 0.5),
+                            blurRadius: 8,
+                            spreadRadius: 2,
+                          ),
+                        ],
                       ),
                     ),
-                  ],
-                ),
+                  );
+                }).toList(),
               ),
             ],
           ],
@@ -311,13 +137,15 @@ class _UnlockNeonDialogState extends State<UnlockNeonDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: () {
+            _soundManager.playButton();
+            Navigator.pop(context);
+          },
           child: Text(
             LanguageManager().translate('close'),
             style: const TextStyle(
               color: GameColors.accentPink,
               fontWeight: FontWeight.bold,
-              fontSize: 16,
             ),
           ),
         ),
@@ -325,25 +153,76 @@ class _UnlockNeonDialogState extends State<UnlockNeonDialog> {
     );
   }
 
-  Widget _buildCondition(String text, bool isCompleted) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 8),
-      child: Row(
+  Widget _buildProgressItem({
+    required IconData icon,
+    required String title,
+    required int progress,
+    required int goal,
+    required bool isCompleted,
+  }) {
+    final percentage = (progress / goal).clamp(0.0, 1.0);
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.05),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: isCompleted
+              ? Colors.green.withValues(alpha: 0.5)
+              : Colors.white.withValues(alpha: 0.2),
+          width: isCompleted ? 2 : 1,
+        ),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            isCompleted ? Icons.check_circle : Icons.circle_outlined,
-            color: isCompleted ? const Color(0xFF00FF88) : Colors.white38,
-            size: 20,
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              text,
-              style: TextStyle(
-                color: isCompleted ? Colors.white : Colors.white60,
-                fontSize: 13,
-                decoration: isCompleted ? TextDecoration.lineThrough : null,
+          Row(
+            children: [
+              Icon(
+                icon,
+                color: isCompleted ? Colors.green : Colors.white70,
+                size: 20,
               ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: Text(
+                  title,
+                  style: TextStyle(
+                    color: isCompleted ? Colors.green : Colors.white,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              Text(
+                '$progress/$goal',
+                style: TextStyle(
+                  color: isCompleted ? Colors.green : GameColors.accentPink,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 16,
+                ),
+              ),
+              if (isCompleted)
+                const Padding(
+                  padding: EdgeInsets.only(left: 8),
+                  child: Icon(
+                    Icons.check_circle,
+                    color: Colors.green,
+                    size: 24,
+                  ),
+                ),
+            ],
+          ),
+          const SizedBox(height: 8),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: percentage,
+              backgroundColor: Colors.white.withValues(alpha: 0.1),
+              valueColor: AlwaysStoppedAnimation<Color>(
+                isCompleted ? Colors.green : GameColors.accentPink,
+              ),
+              minHeight: 8,
             ),
           ),
         ],
