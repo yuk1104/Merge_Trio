@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'dart:math';
 import 'dart:async';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -377,11 +378,17 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       );
       _soundManager.playMerge(game.board[lastMergedRow!][lastMergedCol!]);
       _showScorePopupAsync();
+
+      // マージ時にバイブレーション
+      HapticFeedback.lightImpact();
     }
 
     if (game.comboCount > 1) {
       _soundManager.playCombo(game.comboCount);
       _showComboAsync();
+
+      // コンボ時にもバイブレーション
+      HapticFeedback.mediumImpact();
     }
   }
 
@@ -831,26 +838,28 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: GameColors.backgroundGradient,
-        ),
-        child: SafeArea(
-          child: Stack(
-            children: [
-              Column(
-                children: [
-                  _buildAppBar(),
-                  _buildScoreDisplay(),
-                  Expanded(child: _buildGameBoard()),
-                  _buildNextTiles(),
-                  // バナー広告の表示
-                  _buildBannerAd(),
-                ],
-              ),
-              // パーティクルエフェクト（タップを無視）
-              Positioned.fill(
+    return PopScope(
+      canPop: false, // スワイプバック・戻るボタンを無効化
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: GameColors.backgroundGradient,
+          ),
+          child: SafeArea(
+            child: Stack(
+              children: [
+                Column(
+                  children: [
+                    _buildAppBar(),
+                    _buildScoreDisplay(),
+                    Expanded(child: _buildGameBoard()),
+                    _buildNextTiles(),
+                    // バナー広告の表示
+                    _buildBannerAd(),
+                  ],
+                ),
+                // パーティクルエフェクト（タップを無視）
+                Positioned.fill(
                 child: IgnorePointer(
                   child: CustomPaint(
                     painter: ParticlePainter(particles),
@@ -867,6 +876,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
             ],
           ),
         ),
+      ),
       ),
     );
   }
